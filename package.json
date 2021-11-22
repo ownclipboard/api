@@ -15,7 +15,10 @@
     "js-dev": "npx nodemon build/app.js"
   },
   "dependencies": {
-    "xpresser": "^0.23.2"
+    "@xpresser/jwt": "^1.0.7",
+    "@xpresser/xpress-mongo": "^1.1.8",
+    "xpress-mongo": "^2.0.14",
+    "xpresser": "^0.24.0"
   },
   "devDependencies": {
     "@types/node": "^16.11.1",
