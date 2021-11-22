@@ -34,5 +34,12 @@ export = {
          * Point routes file to routes.ts
          */
         routesFile: "backend://routes.ts"
+    },
+
+    packages: {
+        'body-parser': {
+            json: {limit: '50mb', extended: true},
+            urlencoded: {limit: '50mb', extended: true}
+        }
     }
 };

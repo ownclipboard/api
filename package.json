@@ -1,10 +1,10 @@
 {
-  "name": "new-app-lite-ts",
+  "name": "ownclipboard-api",
   "version": "1.0.0",
-  "description": "XpresserJs Typescript Lite App (No Views) Boilerplate ",
+  "description": "OwnClipboard API Server",
   "main": "app.ts",
-  "repository": "https://github.com/xpresserjs/new-app-lite-ts",
-  "author": "xpresserjs",
+  "repository": "https://github.com/ownclipboard/api",
+  "author": "ownclipboard",
   "license": "MIT",
   "private": false,
   "scripts": {
