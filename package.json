@@ -27,6 +27,6 @@
     "prettier": "^2.4.1",
     "ts-node-dev": "^1.1.8",
     "typescript": "^4.4.4",
-    "xjs-cli": "^0.4.2"
+    "xjs-cli": "^1.0.2"
   }
 }
