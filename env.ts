@@ -8,19 +8,6 @@ if (__filename.includes(".js")) {
     envFile = __dirname + "/../.env";
 }
 
-// Load Env
-const env = EnvLoader(envFile, {
-    castBoolean: true,
-    required: [
-        "NODE_ENV",
-        "APP_PORT",
-        "APP_DOMAIN",
-        "APP_PROTOCOL",
-        "APP_PREVIEW",
-        "APP_PREVIEW_URL"
-    ]
-});
-
 // Declare type for env
 type env = {
     NODE_ENV: string;
@@ -29,7 +16,25 @@ type env = {
     APP_PROTOCOL: string;
     APP_PREVIEW: string;
     APP_PREVIEW_URL: string;
+
+    DATABASE_SERVER: string;
+    DATABASE_NAME: string;
+    DATABASE_PASSWORD: string;
 };
+
+// Load Env
+const env = EnvLoader<env>(envFile, {
+    castBoolean: true,
+    required: [
+        "NODE_ENV",
+        "APP_PORT",
+        "APP_DOMAIN",
+        "APP_PROTOCOL",
+        "DATABASE_SERVER",
+        "DATABASE_NAME",
+        "DATABASE_PASSWORD"
+    ]
+});
 
 // Declare isDev
 const isDev = env.NODE_ENV === "development";

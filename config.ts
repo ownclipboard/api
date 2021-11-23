@@ -3,6 +3,7 @@
  * See https://xpresserjs.com/configuration/
  */
 import { env } from "./env";
+import { parseServerUrl } from "xpress-mongo";
 
 export = {
     // name of app
@@ -36,6 +37,18 @@ export = {
          * Point routes file to routes.ts
          */
         routesFile: "backend://routes.ts"
+    },
+
+    /**
+     * If Enabled, xjs make:model will generate Models
+     * that requires you to define all data types.
+     */
+    useStrictTypescriptModels: true, // >=v1.0.0
+
+    // Mongodb Connection Config
+    mongodb: {
+        url: parseServerUrl(env.DATABASE_SERVER, { password: env.DATABASE_PASSWORD }),
+        database: env.DATABASE_NAME
     },
 
     packages: {
