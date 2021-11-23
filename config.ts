@@ -2,20 +2,22 @@
  * Your Config File.
  * See https://xpresserjs.com/configuration/
  */
+import { env } from "./env";
+
 export = {
     // name of app
-    name: 'Xpresser-Simple-Typescript-App',
+    name: "Ownclipboard Api",
 
     // app environment
-    env: 'development',
+    env: env.NODE_ENV,
 
     /**
      * By default xpresser sets this for you.
      */
     server: {
-        domain: 'localhost',
+        domain: env.APP_DOMAIN,
         // Server Port
-        port: 3000,
+        port: env.APP_PORT
     },
 
     /**
@@ -37,9 +39,9 @@ export = {
     },
 
     packages: {
-        'body-parser': {
-            json: {limit: '50mb', extended: true},
-            urlencoded: {limit: '50mb', extended: true}
+        "body-parser": {
+            json: { limit: "50mb", extended: true },
+            urlencoded: { limit: "50mb", extended: true }
         }
     }
 };
