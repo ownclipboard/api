@@ -1,0 +1,5 @@
+{
+  "middlewares": {
+    "Abolish": "npm://@xpresser/abolish/dist/AbolishMiddleware.js"
+  }
+}

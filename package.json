@@ -15,9 +15,11 @@
     "js-dev": "npx nodemon build/ownclipboard.js"
   },
   "dependencies": {
+    "@xpresser/abolish": "^1.9.1",
     "@xpresser/env": "^1.1.2",
     "@xpresser/jwt": "^1.0.7",
     "@xpresser/xpress-mongo": "^1.1.8",
+    "bcryptjs": "^2.4.3",
     "xpress-mongo": "^2.0.15",
     "xpresser": "^0.24.0"
   },

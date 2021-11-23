@@ -16,3 +16,5 @@ declare module "xpresser/types" {
         key: value
     }
 }*/
+
+import "@xpresser/abolish/xpresser";
