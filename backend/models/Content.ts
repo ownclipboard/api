@@ -1,4 +1,4 @@
-import { is, XMongoModel, XMongoSchema } from "xpress-mongo";
+import { is, ObjectId, XMongoModel, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
 
 /**
@@ -10,16 +10,27 @@ import { UseCollection } from "@xpresser/xpress-mongo";
  * this.data.createdAt // type Date
  */
 export interface ContentDataType {
+    userId: ObjectId;
+    code: string;
+    type: "text" | "url" | "html";
+    context: string;
+    locked: boolean;
+    favorite: boolean;
     updatedAt?: Date;
     createdAt: Date;
 }
-
 
 class Content extends XMongoModel {
     /**
      * Model Schema
      */
     static schema: XMongoSchema<ContentDataType> = {
+        userId: is.ObjectId().required(),
+        code: is.Uuid(4).required(),
+        type: is.String("text").required(),
+        context: is.String().required(),
+        locked: is.Boolean().required(),
+        favorite: is.Boolean().required(),
         updatedAt: is.Date(),
         createdAt: is.Date().required()
     };

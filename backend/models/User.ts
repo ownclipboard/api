@@ -10,18 +10,21 @@ import { UseCollection } from "@xpresser/xpress-mongo";
  * this.data.createdAt // type Date
  */
 export interface UserDataType {
-    updatedAt?: Date;
-    createdAt: Date;
+    username: string;
+    password: string;
+    email?: string;
+    joinedAt: Date;
 }
-
 
 class User extends XMongoModel {
     /**
      * Model Schema
      */
     static schema: XMongoSchema<UserDataType> = {
-        updatedAt: is.Date(),
-        createdAt: is.Date().required()
+        username: is.String().required(),
+        password: is.String().required(),
+        email: is.String().required(),
+        joinedAt: is.Date().required()
     };
 
     // SET Type of this.data.
