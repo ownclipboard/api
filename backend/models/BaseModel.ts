@@ -1,38 +1,77 @@
-import { is, XMongoModel, XMongoSchema } from "xpress-mongo";
-import { UseCollection } from "@xpresser/xpress-mongo";
-
-/**
- * Interface for Model's `this.data`. (For Typescript)
- * Optional if accessing data using model helper functions
- *
- * @example
- * this.data.updatedAt? // type Date
- * this.data.createdAt // type Date
- */
-export interface BaseModelDataType {
-    updatedAt?: Date;
-    createdAt: Date;
-}
-
+import { omitIdAndPick, XMongoModel } from "xpress-mongo";
+import { XMongoStrictConfig } from "xpress-mongo/src/CustomTypes";
+import { escapeRegexp } from "xpress-mongo/fn/helpers";
 
 class BaseModel extends XMongoModel {
-    /**
-     * Model Schema
-     */
-    static schema: XMongoSchema<BaseModelDataType> = {
-        updatedAt: is.Date(),
-        createdAt: is.Date().required()
-    };
+    static strict: XMongoStrictConfig = true;
 
-    // SET Type of this.data.
-    public data!: BaseModelDataType;
+    // Array of publicFields
+    static publicFields: string[];
+
+    /**
+     * Returns the public field defined in a model.
+     */
+    getPublicFields() {
+        return this.toCollection().pick(this.$static<typeof BaseModel>().publicFields);
+    }
+
+    /**
+     * Returns mongodb projection query using public fields
+     */
+    static projectPublicFields(): any {
+        return omitIdAndPick(this.publicFields);
+    }
+
+    /**
+     * Get uuid helper
+     * @example
+     *  content.uuid()
+     */
+    uuid(): string {
+        return this.data.uuid;
+    }
+
+    /**
+     * Search Model.
+     * @param query
+     * @param fields
+     * @param options
+     */
+    static search(
+        query: string,
+        fields: string | string[],
+        options?: {
+            where?: Record<string, any>;
+            caseInsensitive?: boolean;
+        }
+    ) {
+        const $options = Object.assign(
+            {
+                where: {},
+                caseInsensitive: false,
+                queryOptions: {}
+            },
+            options || {}
+        );
+
+        if (typeof fields === "string") fields = [fields];
+        const $or: any[] = [];
+
+        fields.forEach((field) => {
+            $or.push({
+                [field]: new RegExp(
+                    `.*${escapeRegexp(query)}.*`,
+                    $options.caseInsensitive ? "i" : undefined
+                )
+            });
+        });
+
+        return { $or, ...$options.where };
+    }
 }
 
-/**
- * Map Model to Collection: `base_models`
- * .native() will be made available for use.
- */
-UseCollection(BaseModel, "base_models");
+export function IndexUuid(Model: typeof XMongoModel) {
+    Model.native().createIndex({ uuid: 1 }).catch(console.log);
+}
 
-// Export Model as Default
 export default BaseModel;

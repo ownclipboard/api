@@ -1,5 +1,6 @@
-import { is, XMongoModel, XMongoSchema } from "xpress-mongo";
+import { is, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
+import BaseModel from "./BaseModel";
 
 /**
  * Interface for Model's `this.data`. (For Typescript)
@@ -16,7 +17,7 @@ export interface UserDataType {
     joinedAt: Date;
 }
 
-class User extends XMongoModel {
+class User extends BaseModel {
     /**
      * Model Schema
      */

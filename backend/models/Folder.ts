@@ -1,4 +1,4 @@
-import { is, ObjectId, XMongoSchema } from "xpress-mongo";
+import { is, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
 import BaseModel, { IndexUuid } from "./BaseModel";
 
@@ -10,44 +10,36 @@ import BaseModel, { IndexUuid } from "./BaseModel";
  * this.data.updatedAt? // type Date
  * this.data.createdAt // type Date
  */
-export interface DeviceDataType {
-    userId: ObjectId;
+export interface FolderDataType {
     name: string;
     uuid: string;
-    apiKey: string;
-    hits: number;
-    enabled: boolean;
     updatedAt?: Date;
     createdAt: Date;
 }
 
-class Device extends BaseModel {
+class Folder extends BaseModel {
     /**
      * Model Schema
      */
-    static schema: XMongoSchema<DeviceDataType> = {
-        userId: is.ObjectId().required(),
+    static schema: XMongoSchema<FolderDataType> = {
         name: is.String().required(),
         uuid: is.Uuid(4).required(),
-        apiKey: is.String().required(),
-        hits: is.Number().required(),
-        enabled: is.Boolean().required(),
         updatedAt: is.Date(),
         createdAt: is.Date().required()
     };
 
     // SET Type of this.data.
-    public data!: DeviceDataType;
+    public data!: FolderDataType;
 }
 
 /**
- * Map Model to Collection: `devices`
+ * Map Model to Collection: `folders`
  * .native() will be made available for use.
  */
-UseCollection(Device, "devices");
+UseCollection(Folder, "folders");
 
 // Index Uuid
-IndexUuid(Device);
+IndexUuid(Folder);
 
 // Export Model as Default
-export default Device;
+export default Folder;

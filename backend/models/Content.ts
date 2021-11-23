@@ -1,5 +1,6 @@
-import { is, ObjectId, XMongoModel, XMongoSchema } from "xpress-mongo";
+import { is, ObjectId, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
+import BaseModel, { IndexUuid } from "./BaseModel";
 
 /**
  * Interface for Model's `this.data`. (For Typescript)
@@ -11,7 +12,7 @@ import { UseCollection } from "@xpresser/xpress-mongo";
  */
 export interface ContentDataType {
     userId: ObjectId;
-    code: string;
+    uuid: string;
     type: "text" | "url" | "html";
     context: string;
     locked: boolean;
@@ -20,13 +21,13 @@ export interface ContentDataType {
     createdAt: Date;
 }
 
-class Content extends XMongoModel {
+class Content extends BaseModel {
     /**
      * Model Schema
      */
     static schema: XMongoSchema<ContentDataType> = {
         userId: is.ObjectId().required(),
-        code: is.Uuid(4).required(),
+        uuid: is.Uuid(4).required(),
         type: is.String("text").required(),
         context: is.String().required(),
         locked: is.Boolean().required(),
@@ -44,6 +45,9 @@ class Content extends XMongoModel {
  * .native() will be made available for use.
  */
 UseCollection(Content, "contents");
+
+// Index Uuid
+IndexUuid(Content);
 
 // Export Model as Default
 export default Content;
