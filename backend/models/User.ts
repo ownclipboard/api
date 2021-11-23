@@ -23,7 +23,7 @@ class User extends XMongoModel {
     static schema: XMongoSchema<UserDataType> = {
         username: is.String().required(),
         password: is.String().required(),
-        email: is.String().required(),
+        email: is.String().optional(),
         joinedAt: is.Date().required()
     };
 

@@ -11,6 +11,7 @@ if (__filename.includes(".js")) {
 // Declare type for env
 type env = {
     NODE_ENV: string;
+    SECRET_KEY: string;
     APP_PORT: string;
     APP_DOMAIN: string;
     APP_PROTOCOL: string;
@@ -27,6 +28,7 @@ const env = EnvLoader<env>(envFile, {
     castBoolean: true,
     required: [
         "NODE_ENV",
+        "SECRET_KEY",
         "APP_PORT",
         "APP_DOMAIN",
         "APP_PROTOCOL",

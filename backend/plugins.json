@@ -1,4 +1,5 @@
 {
   "npm://@xpresser/xpress-mongo": true,
-  "npm://@xpresser/abolish": true
+  "npm://@xpresser/abolish": true,
+  "npm://@xpresser/jwt": true
 }

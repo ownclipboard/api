@@ -1,11 +1,17 @@
-import {getInstanceRouter} from "xpresser";
+import { getInstanceRouter } from "xpresser";
 /**
  * See https://xpresserjs.com/router/
  */
-const Route = getInstanceRouter();
+const r = getInstanceRouter();
 
 /**
  * Url: "/" points to AppController@index
  * The index method of the controller.
  */
-Route.get('/', 'App@index').name('index');
+r.path("/api/v1/", () => {
+    r.path("auth", () => {
+        r.post("@login");
+        r.post("@signup");
+        r.post("@apiKey");
+    }).controller("Auth");
+});

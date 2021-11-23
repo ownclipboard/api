@@ -4,6 +4,7 @@
  */
 import { env } from "./env";
 import { parseServerUrl } from "xpress-mongo";
+import ReadableTimeout from "readable-timeout";
 
 export = {
     // name of app
@@ -49,6 +50,15 @@ export = {
     mongodb: {
         url: parseServerUrl(env.DATABASE_SERVER, { password: env.DATABASE_PASSWORD }),
         database: env.DATABASE_NAME
+    },
+
+    // Jwt Settings
+    "@xpresser/jwt": {
+        secretKey: env.SECRET_KEY,
+        signer: {
+            expiresIn: ReadableTimeout.msIn("1 day")
+        },
+        verifier: { cache: true }
     },
 
     packages: {

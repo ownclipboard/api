@@ -20,10 +20,12 @@
     "@xpresser/jwt": "^1.0.7",
     "@xpresser/xpress-mongo": "^1.1.8",
     "bcryptjs": "^2.4.3",
+    "readable-timeout": "^1.0.0",
     "xpress-mongo": "^2.0.15",
     "xpresser": "^0.24.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.2",
     "@types/node": "^16.11.1",
     "nodemon": "^2.0.14",
     "prettier": "^2.4.1",
