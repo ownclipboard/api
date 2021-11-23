@@ -2,19 +2,20 @@
   "name": "ownclipboard-api",
   "version": "1.0.0",
   "description": "OwnClipboard API Server",
-  "main": "app.ts",
+  "main": "xpresser.ts",
   "repository": "https://github.com/ownclipboard/api",
   "author": "ownclipboard",
   "license": "MIT",
   "private": false,
   "scripts": {
-    "start": "npm run build && node build/app.js",
+    "start": "npm run build && node build/ownclipboard.js",
     "build": "npx xjs @stack tsc",
     "ts-watch": "npx tsc --watch",
-    "ts-dev": "npx ts-node-dev --respawn app.ts",
-    "js-dev": "npx nodemon build/app.js"
+    "ts-dev": "npx ts-node-dev --respawn ownclipboard.ts",
+    "js-dev": "npx nodemon build/ownclipboard.js"
   },
   "dependencies": {
+    "@xpresser/env": "^1.1.0",
     "@xpresser/jwt": "^1.0.7",
     "@xpresser/xpress-mongo": "^1.1.8",
     "xpress-mongo": "^2.0.14",

@@ -1,7 +1,10 @@
 .vscode
 .idea
 node_modules
+build
+
+yarn.lock
+
 *.sqlite
 *.log
-yarn.lock
-build
+*.env

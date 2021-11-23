@@ -18,7 +18,7 @@ Example app with no views just an index routes that has a message for you.
 {
   "build": "xjs @stack tsc",
   "ts-watch": "tsc --watch",
-  "ts-dev": "ts-node-dev --respawn --transpile-only app.ts",
+  "ts-dev": "ts-node-dev --respawn --transpile-only xpresser.ts",
   "start": "npm run build && node build/app.js",
   "start-dev": "nodemon build/app.js"
 }
