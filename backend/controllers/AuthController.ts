@@ -31,12 +31,7 @@ export = <Controller.Object>{
         const { username, password } = http.validatedBody<{ username: string; password: string }>();
 
         // Get user  and password from db
-        const user = (await User.findOne(
-            { username },
-            {
-                projection: pickKeys(["password"])
-            }
-        ))!;
+        const user = (await User.findOne({ username }, { projection: pickKeys(["password"]) }))!;
 
         // check password
         if (!bcrypt.compareSync(password, user.data.password)) return e("Password is incorrect!");
