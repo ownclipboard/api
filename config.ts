@@ -38,6 +38,8 @@ export = {
          * Point routes file to routes.ts
          */
         routesFile: "backend://routes.ts"
+
+        // npm: "base://node_modules"
     },
 
     /**

@@ -7,6 +7,7 @@ import { $ } from "../../xpresser";
 
 /**
  * AuthController
+ * All auth related actions are declared here.
  */
 export = <Controller.Object>{
     // Controller Name

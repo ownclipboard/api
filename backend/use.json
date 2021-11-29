@@ -1,4 +1,9 @@
 {
+  "extends": {
+    "RequestEngine": [
+      "backend://RequestEngine"
+    ]
+  },
   "middlewares": {
     "Abolish": "npm://@xpresser/abolish/dist/AbolishMiddleware.js"
   }

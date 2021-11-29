@@ -9,6 +9,8 @@ const r = getInstanceRouter();
  * The index method of the controller.
  */
 r.path("/api/v1/", () => {
+    r.get("ping", "Api@ping");
+
     r.path("auth", () => {
         r.post("@login");
         r.post("@signup");
