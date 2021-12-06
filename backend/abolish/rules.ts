@@ -20,5 +20,10 @@ validate.post("Auth@signup", {
     password: isPasswordRequired
 });
 
+// Validate check username route
+validate.post("Auth@checkUsername", {
+    username: isUsername
+});
+
 // Export Rules.
 export = validate;

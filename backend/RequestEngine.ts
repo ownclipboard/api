@@ -1,11 +1,14 @@
 import { ObjectId } from "xpress-mongo";
 import { $ } from "../xpresser";
 
-const XpresserRequestEngine = $.engineData.get(
-    "ExtendedRequestEngine"
-) as () => typeof import("xpresser/src/RequestEngine");
+class RequestEngine extends $.extendedRequestEngine() {
+    /**
+     * Check if user is logged!
+     */
+    isLogged() {
+        return !!this.authUserId();
+    }
 
-class RequestEngine extends XpresserRequestEngine() {
     /**
      * Get current authenticated userId
      */
@@ -27,13 +30,13 @@ class RequestEngine extends XpresserRequestEngine() {
 }
 
 /**
+ * Export Extended RequestEngine.
+ */
+export = RequestEngine;
+
+/**
  * Extend xpresser/types/http
  */
 declare module "xpresser/types/http" {
     interface Http extends RequestEngine {}
 }
-
-/**
- * Export Extended RequestEngine.
- */
-export = () => RequestEngine;

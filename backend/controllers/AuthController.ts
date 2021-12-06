@@ -4,6 +4,7 @@ import User, { UserDataType } from "../models/User";
 import { pickKeys } from "xpress-mongo";
 import { signJwt } from "@xpresser/jwt";
 import { $ } from "../../xpresser";
+import { Abolish } from "abolish";
 
 /**
  * AuthController
@@ -39,7 +40,7 @@ export = <Controller.Object>{
 
         // Create Jwt Token
         const token = signJwt({
-            u: $.base64.encode(user.id().toString())
+            id: $.base64.encode(user.id().toString())
         });
 
         return { token, message: "Login successful." };
@@ -71,5 +72,20 @@ export = <Controller.Object>{
      */
     apiKey(http) {
         return { message: "Apikey is valid!" };
+    },
+
+    /**
+     * Check validity of username.
+     * @param http
+     */
+    async checkUsername(http) {
+        // Get abolish validated body
+        const { username } = http.validatedBody<{ username: string }>();
+
+        // Check if username exists
+        const exists = await Abolish.testAsync(username, "UsernameExists");
+
+        // Return response
+        return { exists };
     }
 };

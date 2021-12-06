@@ -15,5 +15,7 @@ r.path("/api/v1/", () => {
         r.post("@login");
         r.post("@signup");
         r.post("@apiKey");
+
+        r.post("@checkUsername");
     }).controller("Auth");
 });

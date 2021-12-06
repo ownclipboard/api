@@ -15,10 +15,12 @@ Abolish.addGlobalValidator({
         if (shouldExist && !user) {
             return error(`:param is not associated with any account.`);
         }
+
         // if should not exists and user exists.
         else if (!shouldExist && user) {
             return error(`:param already has an account.`);
         }
+
         // if should exists and user exits, append userId to form data.
         else if (shouldExist && user) {
             modifier.set("userId", user._id);

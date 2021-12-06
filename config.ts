@@ -19,7 +19,12 @@ export = {
     server: {
         domain: env.APP_DOMAIN,
         // Server Port
-        port: env.APP_PORT
+        port: env.APP_PORT,
+
+        use: { cors: true },
+
+        // Server Url
+        router: { pathCase: "kebab" }
     },
 
     /**
