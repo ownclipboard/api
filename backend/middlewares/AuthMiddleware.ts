@@ -2,6 +2,7 @@ import { Http } from "xpresser/types/http";
 import { verifyJwt } from "@xpresser/jwt";
 import User from "../models/User";
 import { $ } from "../../xpresser";
+import { ObjectId } from "xpress-mongo";
 
 /**
  * AuthMiddleware
@@ -11,7 +12,7 @@ export = {
      * Default Middleware Action
      * @param {Xpresser.Http} http
      */
-    validateToken(http: Http): any {
+    async validateToken(http: Http): Promise<any> {
         // Get token from header
         const { oc_token } = http.req.headers;
 
@@ -26,13 +27,18 @@ export = {
             const data = verifyJwt(oc_token as string);
 
             // Decode authId
-            const authId = $.base64.decode(data.id);
+            let authId: string | ObjectId = $.base64.decode(data.id);
+            authId = User.id(authId); // convert to ObjectId
+
+            if (!(await User.exists({ _id: authId })))
+                return http.status(401).send({
+                    error: "Invalid Auth Account!"
+                });
 
             // Set auth.userId to state.
-            http.state.set(
-                "auth.userId",
-                User.id(authId) // convert to ObjectId
-            );
+            http.state.set("auth.userId", authId);
+            // Add to boot for easy controller access.
+            http.addToBoot("authId", authId);
 
             // Continue
             return http.next();

@@ -31,13 +31,17 @@ class Folder extends BaseModel {
         createdAt: is.Date().required()
     };
 
+    static publicFields = ["name", "slug"];
+
     // SET Type of this.data.
     public data!: FolderDataType;
 
     static create(userId: ObjectId, name: string) {
+        const slug = slugify(name, { lower: true, replacement: "-" });
+
         return this.new({
             name,
-            slug: slugify(name, { lower: true, replacement: "-" }),
+            slug,
             userId
         });
     }

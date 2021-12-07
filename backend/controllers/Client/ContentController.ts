@@ -1,9 +1,11 @@
 import { Controller, Http } from "xpresser/types/http";
+import Content, { ContentDataType } from "../../models/Content";
+import type { ObjectId } from "xpress-mongo";
 
 /**
  * ContentController
  */
-export = <Controller.Object>{
+export = <Controller.Object<{ authId: ObjectId }>>{
     // Controller Name
     name: "Client/ContentController",
 
@@ -18,11 +20,29 @@ export = <Controller.Object>{
     /**
      * Example Action.
      * @param http - Current Http Instance
+     * @param authId - AuthId from boot.
      */
-    paste(http) {
+    async paste(http, { authId }) {
         type body = { title?: string; content: string };
         const body = http.validatedBody<body>();
 
-        return { body };
+        // Check if content already exists
+        let content = await Content.findOne(<ContentDataType>{
+            userId: authId,
+            context: body.content
+        });
+
+        // If content already exists, update updateAt date
+        if (content) {
+            await content.update(<ContentDataType>{ updatedAt: new Date() });
+        } else {
+            content = await Content.new(<ContentDataType>{
+                userId: authId,
+                title: body.title,
+                context: body.content
+            });
+        }
+
+        return { body, content: content.getPublicFields() };
     }
 };

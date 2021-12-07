@@ -18,11 +18,16 @@ r.path("/client/v1/", () => {
 
         r.post("@checkUsername");
     }).controller("Auth");
-    // .middlewares(["Abolish"]);
 
     r.path("content", () => {
         r.post("@paste");
     })
-        .middlewares(["Auth.validateToken", "Abolish"])
+        .middlewares(["Auth.validateToken"])
         .controller("Client/Content");
+
+    r.path("folders", () => {
+        r.get("=all");
+    })
+        .middlewares(["Auth.validateToken"])
+        .controller("Client/Folder");
 });

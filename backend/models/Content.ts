@@ -1,4 +1,4 @@
-import { is, ObjectId, XMongoSchema } from "xpress-mongo";
+import { is, ObjectId, RefreshDateOnUpdate, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
 import BaseModel, { IndexUuid } from "./BaseModel";
 
@@ -15,6 +15,7 @@ export interface ContentDataType {
     uuid: string;
     title: string;
     type: "text" | "url" | "html";
+    folder: "clipboard" | "encrypted" | string;
     context: string;
     locked: boolean;
     favorite: boolean;
@@ -31,12 +32,24 @@ class Content extends BaseModel {
         uuid: is.Uuid(4).required(),
         title: is.String().required(),
         type: is.String("text").required(),
+        folder: is.String("clipboard").required(),
         context: is.String().required(),
         locked: is.Boolean().required(),
         favorite: is.Boolean().required(),
         updatedAt: is.Date(),
         createdAt: is.Date().required()
     };
+
+    static publicFields = [
+        "uuid",
+        "title",
+        "type",
+        "folder",
+        "context",
+        "locked",
+        "favorite",
+        "updatedAt"
+    ];
 
     // SET Type of this.data.
     public data!: ContentDataType;
@@ -50,6 +63,8 @@ UseCollection(Content, "contents");
 
 // Index Uuid
 IndexUuid(Content);
+// Refresh "updatedAt" on update if has changes.
+RefreshDateOnUpdate(Content, "updatedAt", true);
 
 // Export Model as Default
 export default Content;
