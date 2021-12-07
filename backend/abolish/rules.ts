@@ -4,7 +4,8 @@
  * Rules declared here is used by the abolish middleware to validate request body.
  */
 import AbolishRoutes from "@xpresser/abolish/dist/AbolishRoutes";
-import { isPasswordRequired, isUsername } from "./reusables";
+import { skipIfUndefined } from "abolish/src/Functions";
+import { isPasswordRequired, isString, isUsername } from "./reusables";
 
 const validate = new AbolishRoutes();
 
@@ -23,6 +24,12 @@ validate.post("Auth@signup", {
 // Validate check username route
 validate.post("Auth@checkUsername", {
     username: isUsername
+});
+
+// Validate paste route
+validate.post("Client/Content@paste", {
+    title: skipIfUndefined(isString),
+    content: isPasswordRequired
 });
 
 // Export Rules.

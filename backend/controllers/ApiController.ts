@@ -9,14 +9,5 @@ export = <Controller.Object>{
     name: "ApiController",
 
     // Controller Default Error Handler.
-    e: (http: Http, error: string) => http.status(401).json({ error }),
-
-    /**
-     * Ping
-     * @param http - Current Http Instance
-     */
-    ping(http) {
-        const user = http.authUserId();
-        return { user };
-    }
+    e: (http: Http, error: string) => http.status(401).json({ error })
 };

@@ -21,12 +21,14 @@
     "@xpresser/xpress-mongo": "^1.1.8",
     "bcryptjs": "^2.4.3",
     "readable-timeout": "^1.0.0",
+    "slugify": "^1.6.3",
     "xpress-mongo": "^2.0.16",
     "xpresser": "^0.25.4"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",
     "@types/node": "^16.11.11",
+    "abolish": "^4.7.0",
     "nodemon": "^2.0.15",
     "prettier": "^2.5.0",
     "ts-node-dev": "^1.1.8",

@@ -28,6 +28,8 @@ class User extends BaseModel {
         joinedAt: is.Date().required()
     };
 
+    static publicFields = ["username", "email"];
+
     // SET Type of this.data.
     public data!: UserDataType;
 }

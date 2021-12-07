@@ -1,6 +1,7 @@
-import { is, XMongoSchema } from "xpress-mongo";
+import { is, ObjectId, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
-import BaseModel, { IndexUuid } from "./BaseModel";
+import BaseModel from "./BaseModel";
+import slugify from "slugify";
 
 /**
  * Interface for Model's `this.data`. (For Typescript)
@@ -12,7 +13,8 @@ import BaseModel, { IndexUuid } from "./BaseModel";
  */
 export interface FolderDataType {
     name: string;
-    uuid: string;
+    slug: string;
+    userId: string;
     updatedAt?: Date;
     createdAt: Date;
 }
@@ -23,13 +25,22 @@ class Folder extends BaseModel {
      */
     static schema: XMongoSchema<FolderDataType> = {
         name: is.String().required(),
-        uuid: is.Uuid(4).required(),
+        userId: is.ObjectId().required(),
+        slug: is.String().required().unique(),
         updatedAt: is.Date(),
         createdAt: is.Date().required()
     };
 
     // SET Type of this.data.
     public data!: FolderDataType;
+
+    static create(userId: ObjectId, name: string) {
+        return this.new({
+            name,
+            slug: slugify(name, { lower: true, replacement: "-" }),
+            userId
+        });
+    }
 }
 
 /**
@@ -38,8 +49,11 @@ class Folder extends BaseModel {
  */
 UseCollection(Folder, "folders");
 
-// Index Uuid
-IndexUuid(Folder);
+// Index userId & slug
+Promise.all([
+    Folder.native().createIndex({ userId: 1 }),
+    Folder.native().createIndex({ slug: 1 })
+]).catch(console.error);
 
 // Export Model as Default
 export default Folder;

@@ -6,7 +6,7 @@
  */
 import { Abolish } from "abolish";
 import { Http } from "xpresser/types/http";
-import AbolishError from "abolish/src/AbolishError";
+import type AbolishError from "abolish/src/AbolishError";
 
 export = () => ({
     /**

@@ -13,6 +13,7 @@ import BaseModel, { IndexUuid } from "./BaseModel";
 export interface ContentDataType {
     userId: ObjectId;
     uuid: string;
+    title: string;
     type: "text" | "url" | "html";
     context: string;
     locked: boolean;
@@ -28,6 +29,7 @@ class Content extends BaseModel {
     static schema: XMongoSchema<ContentDataType> = {
         userId: is.ObjectId().required(),
         uuid: is.Uuid(4).required(),
+        title: is.String().required(),
         type: is.String("text").required(),
         context: is.String().required(),
         locked: is.Boolean().required(),
