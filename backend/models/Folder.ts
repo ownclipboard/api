@@ -31,7 +31,7 @@ class Folder extends BaseModel {
         createdAt: is.Date().required()
     };
 
-    static publicFields = ["name", "slug"];
+    static publicFields = ["name", "slug", "contents"];
 
     // SET Type of this.data.
     public data!: FolderDataType;

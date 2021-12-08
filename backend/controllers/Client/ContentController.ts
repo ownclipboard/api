@@ -23,26 +23,43 @@ export = <Controller.Object<{ authId: ObjectId }>>{
      * @param authId - AuthId from boot.
      */
     async paste(http, { authId }) {
-        type body = { title?: string; content: string };
+        type body = { title?: string; content: string; folder?: string };
         const body = http.validatedBody<body>();
+        const folder = body.folder || "clipboard";
 
         // Check if content already exists
         let content = await Content.findOne(<ContentDataType>{
             userId: authId,
-            context: body.content
+            context: body.content,
+            folder
         });
 
-        // If content already exists, update updateAt date
+        // If content already exists, update updateAt date.
         if (content) {
             await content.update(<ContentDataType>{ updatedAt: new Date() });
         } else {
             content = await Content.new(<ContentDataType>{
                 userId: authId,
                 title: body.title,
-                context: body.content
+                context: body.content,
+                folder
             });
         }
 
-        return { body, content: content.getPublicFields() };
+        return { content: content.getPublicFields() };
+    },
+
+    async clips(http, { authId }) {
+        const folder = http.params.folder;
+
+        const clips = await Content.find(
+            <ContentDataType>{
+                userId: authId,
+                folder: folder || "clipboard"
+            },
+            { projection: Content.projectPublicFields() }
+        );
+
+        return { clips };
     }
 };

@@ -25,10 +25,12 @@ export = <Controller.Object>{
 
         // Find User using authId
         if (authId) {
-            user = await User.findById(authId);
+            user = await User.findById(authId, {
+                projection: User.projectPublicFields()
+            });
         }
 
         // Return only public fields
-        return { user: user?.getPublicFields() };
+        return { user };
     }
 };

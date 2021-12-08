@@ -30,7 +30,7 @@ class Content extends BaseModel {
     static schema: XMongoSchema<ContentDataType> = {
         userId: is.ObjectId().required(),
         uuid: is.Uuid(4).required(),
-        title: is.String().required(),
+        title: is.String().optional(),
         type: is.String("text").required(),
         folder: is.String("clipboard").required(),
         context: is.String().required(),
@@ -63,6 +63,13 @@ UseCollection(Content, "contents");
 
 // Index Uuid
 IndexUuid(Content);
+
+// Index userId & folder
+Promise.all([
+    Content.native().createIndex({ folder: 1 }),
+    Content.native().createIndex({ userId: 1 })
+]).catch(console.error);
+
 // Refresh "updatedAt" on update if has changes.
 RefreshDateOnUpdate(Content, "updatedAt", true);
 

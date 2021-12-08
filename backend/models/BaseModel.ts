@@ -71,7 +71,7 @@ class BaseModel extends XMongoModel {
 }
 
 export function IndexUuid(Model: typeof XMongoModel) {
-    Model.native().createIndex({ uuid: 1 }).catch(console.log);
+    Model.native().createIndex({ uuid: 1 }, { unique: true }).catch(console.log);
 }
 
 export default BaseModel;

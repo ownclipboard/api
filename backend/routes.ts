@@ -21,6 +21,7 @@ r.path("/client/v1/", () => {
 
     r.path("content", () => {
         r.post("@paste");
+        r.get("clips/:folder?", "clips");
     })
         .middlewares(["Auth.validateToken"])
         .controller("Client/Content");

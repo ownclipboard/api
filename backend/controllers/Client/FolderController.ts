@@ -25,11 +25,12 @@ export = <Controller.Object>{
         //     }
         // );
 
+        /**
+         * Return folders and count of contents.
+         */
         return await Folder.native()
             .aggregate([
-                {
-                    $match: { userId }
-                },
+                { $match: { userId } },
                 {
                     $lookup: {
                         from: "contents",
@@ -38,9 +39,8 @@ export = <Controller.Object>{
                         as: "contents"
                     }
                 },
-                {
-                    $project: Folder.projectPublicFields()
-                }
+                { $addFields: { contents: { $size: "$contents" } } },
+                { $project: Folder.projectPublicFields() }
             ])
             .toArray();
     }
