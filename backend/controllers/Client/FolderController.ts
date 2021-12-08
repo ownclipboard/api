@@ -11,19 +11,16 @@ export = <Controller.Object>{
     // Controller Default Error Handler.
     e: (http: Http, error: string) => http.status(401).json({ error }),
 
+    middlewares: {
+        Abolish: ["create"]
+    },
+
     /**
      * Example Action.
      * @param http - Current Http Instance
      */
     async all(http) {
         const userId = http.authUserId();
-
-        // return await Folder.find(
-        //     { userId },
-        //     {
-        //         projection: Folder.projectPublicFields()
-        //     }
-        // );
 
         /**
          * Return folders and count of contents.
@@ -43,5 +40,20 @@ export = <Controller.Object>{
                 { $project: Folder.projectPublicFields() }
             ])
             .toArray();
+    },
+
+    async create(http) {
+        const userId = http.authUserId();
+        const { name } = http.validatedBody();
+
+        /**
+         * Create folder.
+         */
+        const folder = await Folder.create(userId, name);
+
+        /**
+         * Return folder.
+         */
+        return folder.getPublicFields();
     }
 };

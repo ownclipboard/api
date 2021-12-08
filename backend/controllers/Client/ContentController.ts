@@ -57,7 +57,10 @@ export = <Controller.Object<{ authId: ObjectId }>>{
                 userId: authId,
                 folder: folder || "clipboard"
             },
-            { projection: Content.projectPublicFields() }
+            {
+                projection: Content.projectPublicFields(),
+                sort: { updatedAt: -1 }
+            }
         );
 
         return { clips };

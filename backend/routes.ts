@@ -28,6 +28,7 @@ r.path("/client/v1/", () => {
 
     r.path("folders", () => {
         r.get("=all");
+        r.post("=create");
     })
         .middlewares(["Auth.validateToken"])
         .controller("Client/Folder");

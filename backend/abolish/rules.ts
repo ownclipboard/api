@@ -5,7 +5,7 @@
  */
 import AbolishRoutes from "@xpresser/abolish/dist/AbolishRoutes";
 import { skipIfUndefined } from "abolish/src/Functions";
-import { isPasswordRequired, isString, isUsername } from "./reusables";
+import { isPasswordRequired, isString, isStringRequired, isUsername } from "./reusables";
 
 const validate = new AbolishRoutes();
 
@@ -29,8 +29,14 @@ validate.post("Auth@checkUsername", {
 // Validate paste route
 validate.post("Client/Content@paste", {
     title: skipIfUndefined(isString),
-    content: isPasswordRequired
+    content: isStringRequired,
+    folder: ["default:clipboard", isStringRequired]
 });
+
+// Validate create folder route
+validate.post("Client/Folder@create", (http) => ({
+    name: [isStringRequired, { setAuthId: http.authUserId() }, "!FolderExists"]
+}));
 
 // Export Rules.
 export = validate;
