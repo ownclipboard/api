@@ -65,8 +65,12 @@ export = <Controller.Object>{
         await user.save();
 
         // Create Default Folders
-        await Folder.create(user.id(), "Clipboard");
-        await Folder.create(user.id(), "Encrypted");
+        await Folder.create({ userId: user.id(), name: "Clipboard" });
+        await Folder.create({
+            userId: user.id(),
+            name: "Encrypted",
+            visibility: "encrypted"
+        });
 
         return { message: "Signup successful." };
     },

@@ -38,7 +38,13 @@ export = <Controller.Object<{ authId: ObjectId }>>{
         if (content) {
             await content.update(<ContentDataType>{ updatedAt: new Date() });
         } else {
-            content = await Content.new(<ContentDataType>{
+            let type: ContentDataType["type"] = "text";
+
+            http.newAbolish();
+            console.log(http.newAbolish());
+
+            content = Content.make(<ContentDataType>{
+                type,
                 userId: authId,
                 title: body.title,
                 context: body.content,

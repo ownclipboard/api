@@ -14,7 +14,8 @@ import slugify from "slugify";
 export interface FolderDataType {
     name: string;
     slug: string;
-    userId: string;
+    userId: ObjectId;
+    visibility: "public" | "private" | "encrypted";
     updatedAt?: Date;
     createdAt: Date;
 }
@@ -27,22 +28,24 @@ class Folder extends BaseModel {
         name: is.String().required(),
         userId: is.ObjectId().required(),
         slug: is.String().required().unique(),
+        visibility: is.InArray(["public", "private", "encrypted"], "public").required(),
         updatedAt: is.Date(),
         createdAt: is.Date().required()
     };
 
-    static publicFields = ["name", "slug", "contents"];
+    static publicFields = ["name", "slug", "contents", "visibility"];
 
     // SET Type of this.data.
     public data!: FolderDataType;
 
-    static create(userId: ObjectId, name: string) {
-        const slug = slugify(name, { lower: true, replacement: "-" });
+    static create(
+        data: Pick<FolderDataType, "name" | "userId"> & Partial<Pick<FolderDataType, "visibility">>
+    ) {
+        const slug = slugify(data.name, { lower: true, replacement: "-" });
 
-        return this.new({
-            name,
-            slug,
-            userId
+        return this.new(<FolderDataType>{
+            ...data,
+            slug
         });
     }
 }

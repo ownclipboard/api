@@ -16,6 +16,7 @@ export interface ContentDataType {
     title: string;
     type: "text" | "url" | "html";
     folder: "clipboard" | "encrypted" | string;
+    visibility: "public" | "private" | "encrypted";
     context: string;
     locked: boolean;
     favorite: boolean;
@@ -33,6 +34,7 @@ class Content extends BaseModel {
         title: is.String().optional(),
         type: is.String("text").required(),
         folder: is.String("clipboard").required(),
+        visibility: is.InArray(["public", "private", "encrypted"], "public").required(),
         context: is.String().required(),
         locked: is.Boolean().required(),
         favorite: is.Boolean().required(),

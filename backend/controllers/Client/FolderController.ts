@@ -49,7 +49,7 @@ export = <Controller.Object>{
         /**
          * Create folder.
          */
-        const folder = await Folder.create(userId, name);
+        const folder = await Folder.create({ userId, name });
 
         /**
          * Return folder.
