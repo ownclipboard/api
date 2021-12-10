@@ -1,0 +1,5 @@
+{
+  "xpresser": "=>0.25.4",
+  "namespace": "params-loader",
+  "use_index": "base://plugins/params-loader/plugin.js"
+}
