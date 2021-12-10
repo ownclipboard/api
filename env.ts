@@ -3,7 +3,7 @@ import EnvLoader from "@xpresser/env";
 // Declare envFile path.
 let envFile = __dirname + "/.env";
 
-// if running in js mood .env will be too levels behind.
+// if running in js mood .env will be two levels behind in folder structure.
 if (__filename.includes(".js")) {
     envFile = __dirname + "/../.env";
 }

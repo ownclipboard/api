@@ -40,10 +40,11 @@ export = <Controller.Object<{ authId: ObjectId }>>{
         } else {
             let type: ContentDataType["type"] = "text";
 
-            http.newAbolish();
-            console.log(http.newAbolish());
+            if (http.abolish.test(body.content, "url")) {
+                type = "url";
+            }
 
-            content = Content.make(<ContentDataType>{
+            content = await Content.new(<ContentDataType>{
                 type,
                 userId: authId,
                 title: body.title,
@@ -56,7 +57,7 @@ export = <Controller.Object<{ authId: ObjectId }>>{
     },
 
     async clips(http, { authId }) {
-        const folder = http.params.folder;
+        const folder = http.params.folder as string;
 
         const clips = await Content.find(
             <ContentDataType>{
@@ -69,6 +70,6 @@ export = <Controller.Object<{ authId: ObjectId }>>{
             }
         );
 
-        return { clips };
+        return { clips, info: `Folder: "${folder}" does not have an encrypted password set yet!` };
     }
 };

@@ -2,7 +2,7 @@
  * Your Config File.
  * See https://xpresserjs.com/configuration/
  */
-import { env } from "./env";
+import { env, isDev } from "./env";
 import { parseServerUrl } from "xpress-mongo";
 import ReadableTimeout from "readable-timeout";
 
@@ -63,7 +63,7 @@ export = {
     "@xpresser/jwt": {
         secretKey: env.SECRET_KEY,
         signer: {
-            expiresIn: ReadableTimeout.msIn("1 day")
+            expiresIn: ReadableTimeout.msIn(isDev ? "30 days" : "1 day")
         },
         verifier: { cache: true }
     },

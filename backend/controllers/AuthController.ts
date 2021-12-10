@@ -5,7 +5,6 @@ import { pickKeys } from "xpress-mongo";
 import { signJwt } from "@xpresser/jwt";
 import { $ } from "../../xpresser";
 import { Abolish } from "abolish";
-import Folder from "../models/Folder";
 
 /**
  * AuthController
@@ -65,12 +64,7 @@ export = <Controller.Object>{
         await user.save();
 
         // Create Default Folders
-        await Folder.create({ userId: user.id(), name: "Clipboard" });
-        await Folder.create({
-            userId: user.id(),
-            name: "Encrypted",
-            visibility: "encrypted"
-        });
+        await user.createDefaultFolders();
 
         return { message: "Signup successful." };
     },
