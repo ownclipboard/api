@@ -14,11 +14,12 @@ export = <Controller.Object<{ authId: ObjectId }>>{
 
     middlewares: {
         // Use Abolish to validate all request body.
-        Abolish: "*"
+        Abolish: "*",
+        "params.folder": "clips"
     },
 
     /**
-     * Example Action.
+     * Paste
      * @param http - Current Http Instance
      * @param authId - AuthId from boot.
      */
@@ -58,6 +59,7 @@ export = <Controller.Object<{ authId: ObjectId }>>{
 
     async clips(http, { authId }) {
         const folder = http.params.folder as string;
+        const params = http.loadedParams();
 
         const clips = await Content.find(
             <ContentDataType>{
@@ -70,6 +72,9 @@ export = <Controller.Object<{ authId: ObjectId }>>{
             }
         );
 
-        return { clips, info: `Folder: "${folder}" does not have an encrypted password set yet!` };
+        return {
+            clips
+            // info: `Folder: "${folder}" does not have an encrypted password set yet!`
+        };
     }
 };

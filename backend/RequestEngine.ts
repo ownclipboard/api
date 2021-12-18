@@ -27,10 +27,29 @@ class RequestEngine extends $.extendedRequestEngine() {
             })
             .pick(["page", "perPage"]) as any;
     }
+
+    /**
+     * Send bad request response.
+     * @param error
+     */
+    badRequestError(error: string) {
+        return this.error(error, 400);
+    }
+
+    /**
+     * Send Error Helper.
+     * @param message
+     * @param status
+     */
+    error(message: string, status: number = 500) {
+        return this.status(status).json({
+            error: message
+        });
+    }
 }
 
 /**
- * Export Extended RequestEngine.
+ * Export Extended CustomRequestEngine.
  */
 export = RequestEngine;
 

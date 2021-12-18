@@ -2,5 +2,5 @@
   "npm://@xpresser/xpress-mongo": true,
   "npm://@xpresser/abolish": true,
   "npm://@xpresser/jwt": true,
-  "./plugins/params-loader": true
+  "npm://@xpresser/params-loader": true
 }
