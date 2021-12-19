@@ -26,10 +26,14 @@ r.path("/client/v1/", () => {
         .middlewares(["Auth.validateToken"])
         .controller("Client/Content");
 
-    r.path("folders", () => {
-        r.get("=all");
-        r.post("=create");
-    })
-        .middlewares(["Auth.validateToken"])
-        .controller("Client/Folder");
+    r.useController("Client/Folder", () => {
+        r.path("folders", () => {
+            r.get("=all");
+            r.post("=create");
+        }).middlewares(["Auth.validateToken"]);
+
+        r.path("folder/:folder", () => {
+            r.post("@setPassword");
+        }).middlewares(["Auth.validateToken", "params.folder"]);
+    });
 });

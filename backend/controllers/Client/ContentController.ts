@@ -1,6 +1,7 @@
 import { Controller, Http } from "xpresser/types/http";
 import Content, { ContentDataType } from "../../models/Content";
 import type { ObjectId } from "xpress-mongo";
+import Folder from "../../models/Folder";
 
 /**
  * ContentController
@@ -59,7 +60,16 @@ export = <Controller.Object<{ authId: ObjectId }>>{
 
     async clips(http, { authId }) {
         const folder = http.params.folder as string;
-        const params = http.loadedParams();
+        let info!: string;
+
+        if (http.hasLoadedParam("folder")) {
+            const $folder = http.loadedParam<Folder>("folder");
+
+            // Throw info if folder is encrypted and not hasPassword.
+            if ($folder.data.visibility === "encrypted" && !$folder.data.hasPassword) {
+                info = `Folder: "${folder}" does not have an encrypted password set yet!`;
+            }
+        }
 
         const clips = await Content.find(
             <ContentDataType>{
@@ -73,8 +83,8 @@ export = <Controller.Object<{ authId: ObjectId }>>{
         );
 
         return {
-            clips
-            // info: `Folder: "${folder}" does not have an encrypted password set yet!`
+            clips,
+            info
         };
     }
 };

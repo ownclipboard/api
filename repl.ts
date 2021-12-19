@@ -22,9 +22,15 @@ repl.setXpresserProvider(() => {
  */
 repl.beforeStart(($: DollarSign) => {
     // Add Models
-    repl.addContextFromFolder($.path.models(), null, null, (context: any) => {
-        return context.default ? context.default : context;
-    });
+    repl.addContextFromFolder(
+        $.path.models(),
+        null,
+        null,
+        // This function checks if using `export default Model` or `export = Model`
+        (context: any) => {
+            return context.default ? context.default : context;
+        }
+    );
 });
 
 /**

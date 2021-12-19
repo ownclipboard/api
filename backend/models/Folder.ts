@@ -16,6 +16,8 @@ export interface FolderDataType {
     slug: string;
     userId: ObjectId;
     visibility: "public" | "private" | "encrypted";
+    hasPassword: boolean;
+    password: string;
     updatedAt?: Date;
     createdAt: Date;
 }
@@ -29,11 +31,13 @@ class Folder extends BaseModel {
         userId: is.ObjectId().required(),
         slug: is.String().required().unique(),
         visibility: is.InArray(["public", "private", "encrypted"], "public").required(),
+        hasPassword: is.Boolean(),
+        password: is.String(),
         updatedAt: is.Date(),
         createdAt: is.Date().required()
     };
 
-    static publicFields = ["name", "slug", "contents", "visibility"];
+    static publicFields = ["name", "slug", "contents", "visibility", "hasPassword"];
 
     // SET Type of this.data.
     public data!: FolderDataType;

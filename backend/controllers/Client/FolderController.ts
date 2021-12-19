@@ -1,5 +1,6 @@
 import { Controller, Http } from "xpresser/types/http";
 import Folder from "../../models/Folder";
+import bcrypt from "bcryptjs";
 
 /**
  * FolderController
@@ -12,11 +13,11 @@ export = <Controller.Object>{
     e: (http: Http, error: string) => http.status(401).json({ error }),
 
     middlewares: {
-        Abolish: ["create"]
+        Abolish: ["create", "setPassword"]
     },
 
     /**
-     * Example Action.
+     * Get all folders
      * @param http - Current Http Instance
      */
     async all(http) {
@@ -42,6 +43,10 @@ export = <Controller.Object>{
             .toArray();
     },
 
+    /**
+     * Create a new folder.
+     * @param http
+     */
     async create(http) {
         const userId = http.authUserId();
         const { name } = http.validatedBody();
@@ -55,5 +60,20 @@ export = <Controller.Object>{
          * Return folder.
          */
         return folder.getPublicFields();
+    },
+
+    async setPassword(http) {
+        let { password } = http.validatedBody<{ password: string }>();
+        const folder = await http.loadedParam<Folder>("folder");
+
+        /**
+         * Save Encrypted hashed password
+         */
+        await folder.update({
+            password: bcrypt.hashSync(password, 10),
+            hasPassword: true
+        });
+
+        return { message: "Password set successfully." };
     }
 };

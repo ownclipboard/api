@@ -38,5 +38,10 @@ validate.post("Client/Folder@create", (http) => ({
     name: [isStringRequired, { setAuthId: http.authUserId() }, "!FolderExists"]
 }));
 
+// Validate setup folder password
+validate.post("Client/Folder@setPassword", {
+    password: [isStringRequired, "md5"]
+});
+
 // Export Rules.
 export = validate;
