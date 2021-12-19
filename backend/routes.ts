@@ -19,12 +19,16 @@ r.path("/client/v1/", () => {
         r.post("@checkUsername");
     }).controller("Auth");
 
-    r.path("content", () => {
-        r.post("@paste");
-        r.get("clips/:folder?", "clips");
-    })
-        .middlewares(["Auth.validateToken"])
-        .controller("Client/Content");
+    r.useController("Client/Content", () => {
+        r.path("clips", () => {
+            r.post("@paste");
+            r.get(":folder?", "clips");
+        }).middlewares(["Auth.validateToken"]);
+
+        r.path("clip/:clip", () => {
+            r.post("@update");
+        }).middlewares(["Auth.validateToken", "params.clip"]);
+    });
 
     r.useController("Client/Folder", () => {
         r.path("folders", () => {
@@ -34,6 +38,7 @@ r.path("/client/v1/", () => {
 
         r.path("folder/:folder", () => {
             r.post("@setPassword");
+            r.post("@checkPassword");
         }).middlewares(["Auth.validateToken", "params.folder"]);
     });
 });

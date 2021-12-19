@@ -2,6 +2,7 @@ import { is, ObjectId, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
 import BaseModel from "./BaseModel";
 import slugify from "slugify";
+import bcrypt from "bcryptjs";
 
 /**
  * Interface for Model's `this.data`. (For Typescript)
@@ -17,7 +18,7 @@ export interface FolderDataType {
     userId: ObjectId;
     visibility: "public" | "private" | "encrypted";
     hasPassword: boolean;
-    password: string;
+    password?: string;
     updatedAt?: Date;
     createdAt: Date;
 }
@@ -51,6 +52,23 @@ class Folder extends BaseModel {
             ...data,
             slug
         });
+    }
+
+    setPassword(password: string) {
+        this.data.hasPassword = true;
+        this.data.password = bcrypt.hashSync(password, 10);
+
+        return this;
+    }
+
+    matchPassword(password: string): boolean {
+        if (!this.data.password) return false;
+
+        return bcrypt.compareSync(password, this.data.password);
+    }
+
+    isEncrypted(): boolean {
+        return this.data.visibility === "encrypted";
     }
 }
 

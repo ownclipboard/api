@@ -43,5 +43,17 @@ validate.post("Client/Folder@setPassword", {
     password: [isStringRequired, "md5"]
 });
 
+// Validate setup folder password
+validate.post("Client/Folder@checkPassword", {
+    password: [isStringRequired, "md5"]
+});
+
+// Validate update clip route
+validate.post("Client/Content@update", {
+    title: skipIfUndefined(isStringRequired),
+    content: skipIfUndefined(isStringRequired),
+    encrypted: "!default|boolean"
+});
+
 // Export Rules.
 export = validate;

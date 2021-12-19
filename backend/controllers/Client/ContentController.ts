@@ -1,12 +1,12 @@
 import { Controller, Http } from "xpresser/types/http";
 import Content, { ContentDataType } from "../../models/Content";
 import type { ObjectId } from "xpress-mongo";
-import Folder from "../../models/Folder";
+import type Folder from "../../models/Folder";
 
 /**
  * ContentController
  */
-export = <Controller.Object<{ authId: ObjectId }>>{
+export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
     // Controller Name
     name: "Client/ContentController",
 
@@ -58,6 +58,11 @@ export = <Controller.Object<{ authId: ObjectId }>>{
         return { content: content.getPublicFields() };
     },
 
+    /**
+     * Get all clips by folder
+     * @param http
+     * @param authId
+     */
     async clips(http, { authId }) {
         const folder = http.params.folder as string;
         let info!: string;
@@ -86,5 +91,33 @@ export = <Controller.Object<{ authId: ObjectId }>>{
             clips,
             info
         };
+    },
+
+    /**
+     * Update clip
+     * @param http
+     * @param authId
+     * @param clip
+     */
+    async update(http, { authId, clip }) {
+        const { content, ...others } =
+            http.validatedBody<{ title?: string; encrypted?: boolean; content?: string }>();
+
+        // Set only defined values
+        clip.toCollection().setDefined(<ContentDataType>{ ...others, context: content });
+
+        if (!clip.hasChanges()) return { info: "Clip has no changes" };
+
+        if (others.encrypted && !clip.data.encrypted) {
+            const folder = await clip.folder();
+
+            if (!folder?.isEncrypted()) {
+                return { warning: "Clip does not belong to an encrypted folder" };
+            }
+        }
+
+        await clip.save();
+
+        return { message: "Clip updated successfully!" };
     }
 };

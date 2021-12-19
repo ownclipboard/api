@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 /**
  * FolderController
  */
-export = <Controller.Object>{
+export = <Controller.Object<{ folder: Folder }>>{
     // Controller Name
     name: "FolderController",
 
@@ -13,7 +13,7 @@ export = <Controller.Object>{
     e: (http: Http, error: string) => http.status(401).json({ error }),
 
     middlewares: {
-        Abolish: ["create", "setPassword"]
+        Abolish: ["create", "setPassword", "checkPassword"]
     },
 
     /**
@@ -62,9 +62,13 @@ export = <Controller.Object>{
         return folder.getPublicFields();
     },
 
-    async setPassword(http) {
+    /**
+     * Set password for a folder.
+     * @param http
+     * @param folder
+     */
+    async setPassword(http, { folder }) {
         let { password } = http.validatedBody<{ password: string }>();
-        const folder = await http.loadedParam<Folder>("folder");
 
         /**
          * Save Encrypted hashed password
@@ -75,5 +79,20 @@ export = <Controller.Object>{
         });
 
         return { message: "Password set successfully." };
+    },
+
+    /**
+     * Check if password is correct.
+     * @param http
+     * @param folder
+     */
+    checkPassword(http, { folder }) {
+        if (!folder.data.password) return http.badRequestError("Folder has no password.");
+
+        // Get password from request.
+        const { password } = http.validatedBody<{ password: string }>();
+
+        // Check if password is correct.
+        return { match: folder.matchPassword(password) };
     }
 };
