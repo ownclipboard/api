@@ -4,8 +4,9 @@
  * Rules declared here is used by the abolish middleware to validate request body.
  */
 import AbolishRoutes from "@xpresser/abolish/dist/AbolishRoutes";
-import { skipIfUndefined } from "abolish/src/Functions";
+import { skipIfNotDefined, skipIfUndefined } from "abolish/src/Functions";
 import { isPasswordRequired, isString, isStringRequired, isUsername } from "./reusables";
+import Content from "../models/Content";
 
 const validate = new AbolishRoutes();
 
@@ -27,11 +28,16 @@ validate.post("Auth@checkUsername", {
 });
 
 // Validate paste route
-validate.post("Client/Content@paste", {
+validate.post("Client/Content@paste", (http) => ({
     title: skipIfUndefined(isString),
     content: isStringRequired,
-    folder: ["default:clipboard", isStringRequired]
-});
+    folder: [
+        "default:clipboard",
+        isStringRequired,
+        { setAuthId: http.authUserId() },
+        "FolderExists"
+    ]
+}));
 
 // Validate create folder route
 validate.post("Client/Folder@create", (http) => ({
@@ -53,6 +59,14 @@ validate.post("Client/Content@update", {
     title: skipIfUndefined(isStringRequired),
     content: skipIfUndefined(isStringRequired),
     encrypted: "!default|boolean"
+});
+
+// Validate delete clip route
+validate.post("Client/Content@delete", (http) => {
+    const clip = http.loadedParam<Content>("clip");
+    return {
+        password: [{ $skip: !clip.data.encrypted }, isStringRequired, "md5"]
+    };
 });
 
 // Export Rules.

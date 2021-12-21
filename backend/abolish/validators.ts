@@ -67,7 +67,7 @@ Abolish.addGlobalValidator({
             return error(`No folder with name: "${folder}"`);
         }
 
-        // if should not exists and folder exists.
+        // if should not exist and folder exists.
         else if (!shouldExist && folderExists) {
             return error(`Folder with name: "${folder}" already exists.`);
         }

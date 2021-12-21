@@ -1,7 +1,8 @@
 import { Controller, Http } from "xpresser/types/http";
 import Content, { ContentDataType } from "../../models/Content";
 import type { ObjectId } from "xpress-mongo";
-import type Folder from "../../models/Folder";
+import Folder, { FolderDataType } from "../../models/Folder";
+import { omitIdAndPick } from "xpress-mongo";
 
 /**
  * ContentController
@@ -24,37 +25,51 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
      * @param http - Current Http Instance
      * @param authId - AuthId from boot.
      */
-    async paste(http, { authId }) {
+    async paste(http, { authId: userId }) {
         type body = { title?: string; content: string; folder?: string };
-        const body = http.validatedBody<body>();
-        const folder = body.folder || "clipboard";
+        const { title, content: context, folder } = http.validatedBody<body>();
 
-        // Check if content already exists
-        let content = await Content.findOne(<ContentDataType>{
-            userId: authId,
-            context: body.content,
-            folder
-        });
+        // Find Folder
+        const $folder = (await Folder.findOne(<FolderDataType>{ slug: folder, userId }, {
+            projection: omitIdAndPick("visibility")
+        }))!;
+
+        // Check if content already exists if folder is not encrypted.
+        let content = $folder.isEncrypted()
+            ? null
+            : await Content.findOne(<ContentDataType>{ userId, context, folder });
 
         // If content already exists, update updateAt date.
         if (content) {
-            await content.update(<ContentDataType>{ updatedAt: new Date() });
+            content.data.updatedAt = new Date();
         } else {
-            let type: ContentDataType["type"] = "text";
-
-            if (http.abolish.test(body.content, "url")) {
-                type = "url";
-            }
-
-            content = await Content.new(<ContentDataType>{
-                type,
-                userId: authId,
-                title: body.title,
-                context: body.content,
+            // If content doesn't exists, make new content.
+            content = Content.make(<ContentDataType>{
+                userId,
+                title,
+                context,
                 folder
             });
+
+            // if folder is encrypted, set content as encrypted.
+            if ($folder.isEncrypted()) {
+                content.data.encrypted = true;
+            } else {
+                // Set default content type
+                let type: ContentDataType["type"] = "text";
+
+                // Check if it is an url
+                if (http.abolish.test(context, "url")) type = "url";
+
+                // Set content type
+                content.data.type = type;
+            }
         }
 
+        // Save content
+        await content.save();
+
+        // Return public fields
         return { content: content.getPublicFields() };
     },
 
@@ -106,8 +121,10 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         // Set only defined values
         clip.toCollection().setDefined(<ContentDataType>{ ...others, context: content });
 
+        // Stop if clip has no changes
         if (!clip.hasChanges()) return { info: "Clip has no changes" };
 
+        // Check if folder is encrypted and has password
         if (others.encrypted && !clip.data.encrypted) {
             const folder = await clip.folder();
 
@@ -119,5 +136,19 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         await clip.save();
 
         return { message: "Clip updated successfully!" };
+    },
+
+    async delete(http, { clip }) {
+        if (clip.data.encrypted) {
+            const folder = (await clip.folder())!;
+            const { password } = http.validatedBody<{ password: string }>();
+
+            if (!folder.matchPassword(password))
+                return http.badRequestError(`Incorrect password for folder: ${folder.data.name}`);
+        }
+
+        await clip.delete();
+
+        return { message: "Clip deleted successfully!" };
     }
 };

@@ -64,7 +64,10 @@ class Content extends BaseModel {
     public data!: ContentDataType;
 
     folder(options?: any) {
-        return Folder.findOne(<FolderDataType>{ slug: this.data.folder }, options);
+        return Folder.findOne(
+            <FolderDataType>{ slug: this.data.folder, userId: this.data.userId },
+            options
+        );
     }
 
     setPassword(password: string) {

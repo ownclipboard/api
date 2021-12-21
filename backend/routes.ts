@@ -26,6 +26,7 @@ r.path("/client/v1/", () => {
         }).middlewares(["Auth.validateToken"]);
 
         r.path("clip/:clip", () => {
+            r.post("@delete");
             r.post("@update");
         }).middlewares(["Auth.validateToken", "params.clip"]);
     });

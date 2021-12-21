@@ -43,7 +43,7 @@ export = <Controller.Object>{
             id: $.base64.encode(user.id().toString())
         });
 
-        return { token, message: "Login successful." };
+        return { token };
     },
 
     /**
