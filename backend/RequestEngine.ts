@@ -25,7 +25,7 @@ class RequestEngine extends $.extendedRequestEngine() {
                 page: 1,
                 perPage: 30
             })
-            .pick(["page", "perPage"]) as any;
+            .pick(["page", "perPage"]) as { page: number; perPage: number };
     }
 
     /**

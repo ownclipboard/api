@@ -91,7 +91,11 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
             }
         }
 
-        const clips = await Content.find(
+        const { page, perPage } = http.paginationQuery();
+
+        const clips = await Content.paginate(
+            page,
+            perPage,
             <ContentDataType>{
                 userId: authId,
                 folder: folder || "clipboard"
