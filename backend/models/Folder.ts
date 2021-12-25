@@ -1,4 +1,4 @@
-import { is, ObjectId, XMongoSchema } from "xpress-mongo";
+import { is, joi, ObjectId, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
 import BaseModel from "./BaseModel";
 import slugify from "slugify";
@@ -19,6 +19,10 @@ export interface FolderDataType {
     visibility: "public" | "private" | "encrypted";
     hasPassword: boolean;
     password?: string;
+    publicPaste?: {
+        id: string;
+        date: Date;
+    };
     updatedAt?: Date;
     createdAt: Date;
 }
@@ -34,11 +38,19 @@ class Folder extends BaseModel {
         visibility: is.InArray(["public", "private", "encrypted"], "public").required(),
         hasPassword: is.Boolean(),
         password: is.String(),
+
+        publicPaste: joi
+            .object({
+                id: joi.string().required(),
+                date: joi.date().required()
+            })
+            .optional(),
+
         updatedAt: is.Date(),
         createdAt: is.Date().required()
     };
 
-    static publicFields = ["name", "slug", "contents", "visibility", "hasPassword"];
+    static publicFields = ["name", "slug", "contents", "visibility", "hasPassword", "publicPaste"];
 
     // SET Type of this.data.
     public data!: FolderDataType;

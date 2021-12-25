@@ -38,8 +38,12 @@ r.path("/client/v1/", () => {
         }).middlewares(["Auth.validateToken"]);
 
         r.path("folder/:folder", () => {
+            r.delete("=delete");
+
             r.post("@setPassword");
             r.post("@checkPassword");
+            r.post("@enablePublicPaste");
+            r.post("@disablePublicPaste");
         }).middlewares(["Auth.validateToken", "params.folder"]);
     });
 });

@@ -1,6 +1,8 @@
 import { Controller, Http } from "xpresser/types/http";
-import Folder from "../../models/Folder";
+import Folder, { FolderDataType } from "../../models/Folder";
 import bcrypt from "bcryptjs";
+import { nanoid } from "nanoid";
+import Content from "../../models/Content";
 
 /**
  * FolderController
@@ -94,5 +96,60 @@ export = <Controller.Object<{ folder: Folder }>>{
 
         // Check if password is correct.
         return { match: folder.matchPassword(password) };
+    },
+
+    /**
+     * Enable public paste.
+     * @param http
+     * @param folder
+     */
+    async enablePublicPaste(http, { folder }) {
+        if (folder.has("publicPaste"))
+            return http.badRequestError("Folder already has public paste enabled.");
+
+        folder.set("publicPaste", <FolderDataType["publicPaste"]>{
+            id: nanoid(),
+            date: new Date()
+        });
+
+        await folder.save();
+
+        return { message: "Public paste enabled." };
+    },
+
+    /**
+     * Disable public paste.
+     * @param http
+     * @param folder
+     */
+    async disablePublicPaste(http, { folder }) {
+        if (!folder.has("publicPaste"))
+            return http.badRequestError("Folder is not enabled for public paste.");
+
+        await folder.unset("publicPaste");
+
+        return { message: "Public paste disabled." };
+    },
+
+    /**
+     * Delete a folder.
+     */
+    async delete(http, { folder }) {
+        if (folder.has("hasPassword", true)) {
+            return http.badRequestError("Folder has password, cannot delete.");
+        } else if (folder.has("slug", "clipboard")) {
+            return http.badRequestError(
+                `Folder ${folder.data.name} cannot be deleted! It is the default folder.`
+            );
+        }
+
+        await Content.native().deleteMany({
+            folder: folder.data.slug,
+            userId: folder.data.userId
+        });
+
+        await folder.delete();
+
+        return { message: "Folder deleted successfully." };
     }
 };
