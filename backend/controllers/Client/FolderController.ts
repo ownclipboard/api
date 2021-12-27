@@ -15,7 +15,8 @@ export = <Controller.Object<{ folder: Folder }>>{
     e: (http: Http, error: string) => http.status(401).json({ error }),
 
     middlewares: {
-        Abolish: ["create", "setPassword", "checkPassword"]
+        Abolish: ["create", "setPassword", "checkPassword"],
+        "params.pasteId": "pasteId"
     },
 
     /**
@@ -151,5 +152,10 @@ export = <Controller.Object<{ folder: Folder }>>{
         await folder.delete();
 
         return { message: "Folder deleted successfully." };
+    },
+
+    async pasteId(http) {
+        const folder = http.loadedParam<Folder>("folder");
+        return { folder };
     }
 };

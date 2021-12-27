@@ -4,9 +4,10 @@
  * Rules declared here is used by the abolish middleware to validate request body.
  */
 import AbolishRoutes from "@xpresser/abolish/dist/AbolishRoutes";
-import { skipIfNotDefined, skipIfUndefined } from "abolish/src/Functions";
+import { skipIfUndefined } from "abolish/src/Functions";
 import { isPasswordRequired, isString, isStringRequired, isUsername } from "./reusables";
 import Content from "../models/Content";
+import { $joi } from "abolish/src/Joi";
 
 const validate = new AbolishRoutes();
 
@@ -39,6 +40,12 @@ validate.post("Client/Content@paste", (http) => ({
     ]
 }));
 
+// Validate public paste route
+validate.post("Client/Content@publicPaste", {
+    title: skipIfUndefined(isString),
+    content: isStringRequired
+});
+
 // Validate create folder route
 validate.post("Client/Folder@create", (http) => ({
     name: [isStringRequired, { setAuthId: http.authUserId() }, "!FolderExists"]
@@ -67,6 +74,10 @@ validate.post("Client/Content@delete", (http) => {
     return {
         password: [{ $skip: !clip.data.encrypted }, isStringRequired, "md5"]
     };
+});
+
+validate.post("Client/Content@find", {
+    ids: ["required", $joi((joi) => joi.array().items(joi.string().label("ids.*")).label("ids"))]
 });
 
 // Export Rules.

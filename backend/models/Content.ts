@@ -3,6 +3,7 @@ import { UseCollection } from "@xpresser/xpress-mongo";
 import BaseModel, { IndexUuid } from "./BaseModel";
 import bcrypt from "bcryptjs";
 import Folder, { FolderDataType } from "./Folder";
+import { Abolish } from "abolish";
 
 /**
  * Interface for Model's `this.data`. (For Typescript)
@@ -19,6 +20,7 @@ export interface ContentDataType {
     type: "text" | "url" | "html";
     folder: "clipboard" | "encrypted" | string;
     visibility: "public" | "private" | "encrypted";
+    publicPaste?: boolean;
     context: string;
     encrypted: boolean;
     password?: string;
@@ -44,6 +46,7 @@ class Content extends BaseModel {
         password: is.String(),
         locked: is.Boolean(),
         favorite: is.Boolean(),
+        publicPaste: is.Boolean(),
         updatedAt: is.Date(),
         createdAt: is.Date().required()
     };
@@ -81,6 +84,18 @@ class Content extends BaseModel {
         if (!this.data.password) return false;
 
         return bcrypt.compareSync(password, this.data.password);
+    }
+
+    setContextType() {
+        let type: ContentDataType["type"] = "text";
+
+        // Check if it is an url
+        if (Abolish.test(this.data.context, "url")) type = "url";
+
+        // Set content type
+        this.data.type = type;
+
+        return this;
     }
 }
 

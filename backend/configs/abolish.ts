@@ -8,6 +8,8 @@ import { Abolish } from "abolish";
 import { Http } from "xpresser/types/http";
 import type AbolishError from "abolish/src/AbolishError";
 
+Abolish.useJoi();
+
 export = () => ({
     /**
      * Validation Rules

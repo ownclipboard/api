@@ -20,6 +20,9 @@ r.path("/client/v1/", () => {
     }).controller("Auth");
 
     r.useController("Client/Content", () => {
+        r.post("clips/find", "find");
+        r.post("clips/paste/:pasteId", "publicPaste");
+
         r.path("clips", () => {
             r.post("@paste");
             r.get(":folder?", "clips");
@@ -32,6 +35,8 @@ r.path("/client/v1/", () => {
     });
 
     r.useController("Client/Folder", () => {
+        r.get("folders/public/:pasteId", "pasteId");
+
         r.path("folders", () => {
             r.get("=all");
             r.post("=create");

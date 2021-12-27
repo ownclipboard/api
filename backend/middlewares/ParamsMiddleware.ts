@@ -1,5 +1,6 @@
 import { ParamsMiddleware } from "@xpresser/params-loader";
-import Folder, { FolderDataType } from "../models/Folder";
+import Folder from "../models/Folder";
+import folder, { FolderDataType } from "../models/Folder";
 import Content, { ContentDataType } from "../models/Content";
 
 // Define your params
@@ -32,5 +33,16 @@ export = ParamsMiddleware({
             // If clip is not found then return 404
             return http.error(`Clip with id: '${clip}' not found!`, 404);
         }
+    },
+
+    pasteId: {
+        as: "folder",
+        load: (pasteId) => {
+            // find Folder by pasteId
+            return Folder.findOne({
+                "publicPaste.id": pasteId
+            });
+        },
+        notFound: (http) => http.badRequestError("Paste folder not found or has expired!")
     }
 });

@@ -1,8 +1,8 @@
 import { Controller, Http } from "xpresser/types/http";
 import Content, { ContentDataType } from "../../models/Content";
 import type { ObjectId } from "xpress-mongo";
-import Folder, { FolderDataType } from "../../models/Folder";
 import { omitIdAndPick } from "xpress-mongo";
+import Folder, { FolderDataType } from "../../models/Folder";
 
 /**
  * ContentController
@@ -17,7 +17,13 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
     middlewares: {
         // Use Abolish to validate all request body.
         Abolish: "*",
-        "params.folder": "clips"
+        "params.folder": "clips",
+        "params.pasteId": "publicPaste"
+    },
+
+    find(http) {
+        const body = http.validatedBody();
+        return { clips: [], body };
     },
 
     /**
@@ -56,13 +62,7 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
                 content.data.encrypted = true;
             } else {
                 // Set default content type
-                let type: ContentDataType["type"] = "text";
-
-                // Check if it is an url
-                if (http.abolish.test(context, "url")) type = "url";
-
-                // Set content type
-                content.data.type = type;
+                content.setContextType();
             }
         }
 
@@ -70,7 +70,42 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         await content.save();
 
         // Return public fields
-        return { content: content.getPublicFields() };
+        return { clip: content.getPublicFields() };
+    },
+
+    async publicPaste(http) {
+        const folder = http.loadedParam<Folder>("folder");
+        type body = { title?: string; content: string };
+        const { title, content: context } = http.validatedBody<body>();
+
+        // set userId to folder owner id since  no auth user is required for this route.
+        const commonFolderData = { userId: folder.data.userId, folder: folder.data.slug };
+
+        // Check if content already exists if folder is not encrypted.
+        let content = await Content.findOne(<ContentDataType>{
+            context,
+            ...commonFolderData
+        });
+
+        // If content already exists, update updateAt date.
+        if (content) {
+            content.data.updatedAt = new Date();
+        } else {
+            // If content doesn't exists, make new content.
+            content = Content.make(<ContentDataType>{
+                title,
+                context,
+                ...commonFolderData
+            });
+
+            // Set default content type
+            content.setContextType();
+        }
+
+        await content.save();
+
+        // Return public fields
+        return { clip: content.getPublicFields() };
     },
 
     /**
