@@ -22,22 +22,31 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         "params.pasteId": "publicPaste"
     },
 
+    /**
+     * Find contents by uuid with public paste id
+     * @param http
+     */
     async find(http) {
+        // Get ids from request body
         const { ids } = http.validatedBody<{ ids: string[] }>();
 
+        // Get pagination data
         const { page, perPage } = http.paginationQuery();
 
+        // return empty pagination data if no ids
         if (!ids || !ids.length) {
             return { clips: DefaultPaginationData({ page, perPage }) };
         }
 
+        // find clips by ids
         const clips = await Content.paginate(
             page,
             perPage,
             { uuid: { $in: ids }, publicPaste: { $exists: true } },
-            { projection: Content.projectPublicFields() }
+            { projection: Content.projectPublicFields(), sort: { updatedAt: -1 } }
         );
 
+        // return clips
         return { clips };
     },
 
@@ -92,6 +101,7 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         const folder = http.loadedParam<Folder>("folder");
         type body = { title?: string; content: string };
         const { title, content: context } = http.validatedBody<body>();
+        let updated = false;
 
         // set userId to folder owner id since  no auth user is required for this route.
         const commonFolderData = { userId: folder.data.userId, folder: folder.data.slug };
@@ -104,13 +114,15 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
 
         // If content already exists, update updateAt date.
         if (content) {
+            updated = true;
             content.data.updatedAt = new Date();
         } else {
             // If content doesn't exists, make new content.
             content = Content.make(<ContentDataType>{
                 title,
                 context,
-                ...commonFolderData
+                ...commonFolderData,
+                publicPaste: true
             });
 
             // Set default content type
@@ -120,7 +132,12 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         await content.save();
 
         // Return public fields
-        return { clip: content.getPublicFields() };
+        return {
+            clip: content.getPublicFields(),
+            [updated ? "info" : "message"]: updated
+                ? "Clip already exists!"
+                : "Clip pasted successfully."
+        };
     },
 
     /**
