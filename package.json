@@ -20,12 +20,12 @@
     "@xpresser/jwt": "^1.0.7",
     "@xpresser/params-loader": "^0.1.7",
     "@xpresser/xpress-mongo": "^1.1.8",
-    "abolish": "^4.7.2",
+    "abolish": "^4.7.3",
     "bcryptjs": "^2.4.3",
     "nanoid": "^3.1.30",
     "readable-timeout": "^1.0.0",
     "slugify": "^1.6.3",
-    "xpress-mongo": "^2.1.0",
+    "xpress-mongo": "^2.2.1",
     "xpresser": "^0.25.4"
   },
   "devDependencies": {
@@ -38,6 +38,6 @@
     "xjs-cli": "^1.1.3"
   },
   "engines": {
-    "node": "^14"
+    "node": ">=14"
   }
 }

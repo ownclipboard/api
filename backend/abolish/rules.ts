@@ -77,7 +77,7 @@ validate.post("Client/Content@delete", (http) => {
 });
 
 validate.post("Client/Content@find", {
-    ids: ["required", $joi((joi) => joi.array().items(joi.string().label("ids.*")).label("ids"))]
+    ids: $joi((joi) => joi.array().required().items(joi.string().label("ids.*")).label("ids"))
 });
 
 // Export Rules.

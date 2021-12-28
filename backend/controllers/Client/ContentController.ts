@@ -3,6 +3,7 @@ import Content, { ContentDataType } from "../../models/Content";
 import type { ObjectId } from "xpress-mongo";
 import { omitIdAndPick } from "xpress-mongo";
 import Folder, { FolderDataType } from "../../models/Folder";
+import { DefaultPaginationData } from "xpress-mongo/fn/helpers";
 
 /**
  * ContentController
@@ -21,9 +22,23 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         "params.pasteId": "publicPaste"
     },
 
-    find(http) {
-        const body = http.validatedBody();
-        return { clips: [], body };
+    async find(http) {
+        const { ids } = http.validatedBody<{ ids: string[] }>();
+
+        const { page, perPage } = http.paginationQuery();
+
+        if (!ids || !ids.length) {
+            return { clips: DefaultPaginationData({ page, perPage }) };
+        }
+
+        const clips = await Content.paginate(
+            page,
+            perPage,
+            { uuid: { $in: ids }, publicPaste: { $exists: true } },
+            { projection: Content.projectPublicFields() }
+        );
+
+        return { clips };
     },
 
     /**
