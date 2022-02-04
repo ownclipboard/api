@@ -28,7 +28,7 @@ Abolish.addGlobalValidator({
             return error(`:param is not associated with any account.`);
         }
 
-        // if should not exists and user exists.
+        // if should not exist and user exists.
         else if (!shouldExist && user) {
             return error(`:param already has an account.`);
         }
@@ -64,12 +64,12 @@ Abolish.addGlobalValidator({
 
         // if should exist and does not exist
         if (shouldExist && !folderExists) {
-            return error(`No folder with name: "${folder}"`);
+            return error(`No folder with name: '${folder}'`);
         }
 
         // if should not exist and folder exists.
         else if (!shouldExist && folderExists) {
-            return error(`Folder with name: "${folder}" already exists.`);
+            return error(`Folder with name: '${folder}' already exists.`);
         }
 
         return true;

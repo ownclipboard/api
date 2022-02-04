@@ -25,6 +25,8 @@ r.path("/client/v1/", () => {
 
         r.path("clips", () => {
             r.post("@paste");
+            r.post("@upload");
+
             r.get(":folder?", "clips");
         }).middlewares(["Auth.validateToken"]);
 

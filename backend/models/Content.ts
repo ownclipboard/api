@@ -17,7 +17,7 @@ export interface ContentDataType {
     userId: ObjectId;
     uuid: string;
     title: string;
-    type: "text" | "url" | "html";
+    type: "text" | "url" | "html" | "image";
     folder: "clipboard" | "encrypted" | string;
     visibility: "public" | "private" | "encrypted";
     publicPaste?: boolean;
@@ -42,11 +42,13 @@ class Content extends BaseModel {
         folder: is.String("clipboard").required(),
         visibility: is.InArray(["public", "private", "encrypted"], "public").required(),
         context: is.String().required(),
-        encrypted: is.Boolean(),
-        password: is.String(),
-        locked: is.Boolean(),
-        favorite: is.Boolean(),
-        publicPaste: is.Boolean(),
+
+        password: is.String().undefined(),
+        encrypted: is.Boolean().undefined(),
+        locked: is.Boolean().undefined(),
+        favorite: is.Boolean().undefined(),
+        publicPaste: is.Boolean().undefined(),
+
         updatedAt: is.Date(),
         createdAt: is.Date().required()
     };

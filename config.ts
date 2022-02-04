@@ -42,9 +42,14 @@ export = {
         /**
          * Point routes file to routes.ts
          */
-        routesFile: "backend://routes.ts"
+        routesFile: "backend://routes.ts",
 
-        // npm: "base://node_modules"
+        /**
+         * Path to file uploads
+         */
+        uploads: {
+            images: "uploads/images"
+        }
     },
 
     /**

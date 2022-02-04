@@ -1,6 +1,7 @@
 import { $ } from "./xpresser";
 
-// Server Events
+// Setup folder structure.
+$.on.bootServer(require("./backend/FolderSetup"));
 
 // Boot Server.
 $.boot();

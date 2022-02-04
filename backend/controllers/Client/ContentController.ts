@@ -4,6 +4,8 @@ import type { ObjectId } from "xpress-mongo";
 import { omitIdAndPick } from "xpress-mongo";
 import Folder, { FolderDataType } from "../../models/Folder";
 import { DefaultPaginationData } from "xpress-mongo/fn/helpers";
+import { skipIfUndefined } from "abolish/src/Functions";
+import { isString, isStringRequired } from "../../abolish/reusables";
 
 /**
  * ContentController
@@ -138,6 +140,34 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
                 ? "Clip already exists!"
                 : "Clip pasted successfully."
         };
+    },
+
+    async upload(http) {
+        // Get current user
+        const authId = http.authUserId();
+
+        // Get content as file.
+        const content = await http.file("content", {
+            size: 5,
+            // image only extensions
+            extensions: ["png", "jpg", "jpeg", "gif", "bmp", "webp"]
+        });
+
+        // Handle file upload error.
+        if (content.error()) return http.badRequestError(content.error()!.message);
+
+        // Validate file body
+        const [err, { title, folder }] = await http.validateAsync(content.body, {
+            title: skipIfUndefined(isString),
+            folder: ["default:clipboard", isStringRequired, { setAuthId: authId }, "FolderExists"]
+        });
+
+        // Handle validation error.
+        if (err) return http.badRequestError(err.message);
+
+        console.log({ title, folder });
+
+        return { message: "Image uploaded successfully!", content };
     },
 
     /**

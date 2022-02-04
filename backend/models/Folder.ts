@@ -36,8 +36,9 @@ class Folder extends BaseModel {
         userId: is.ObjectId().required(),
         slug: is.String().required().unique(),
         visibility: is.InArray(["public", "private", "encrypted"], "public").required(),
-        hasPassword: is.Boolean(),
         password: is.String(),
+
+        hasPassword: is.Boolean().undefined(),
 
         publicPaste: joi
             .object({

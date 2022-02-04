@@ -1,7 +1,7 @@
 /**
- * This file holds all request body validation rules..
+ * This file holds all request body validation rules.
  *
- * Rules declared here is used by the abolish middleware to validate request body.
+ * Rules declared here is used by to abolish middleware to validate request body.
  */
 import AbolishRoutes from "@xpresser/abolish/dist/AbolishRoutes";
 import { skipIfUndefined } from "abolish/src/Functions";
@@ -39,6 +39,17 @@ validate.post("Client/Content@paste", (http) => ({
         "FolderExists"
     ]
 }));
+
+// Validate paste route
+// validate.post("Client/Content@upload", (http) => ({
+//     title: skipIfUndefined(isString),
+//     folder: [
+//         "default:clipboard",
+//         isStringRequired,
+//         { setAuthId: http.authUserId() },
+//         "FolderExists"
+//     ]
+// }));
 
 // Validate public paste route
 validate.post("Client/Content@publicPaste", {

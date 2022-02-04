@@ -19,3 +19,4 @@ declare module "xpresser/types" {
 
 import "@xpresser/abolish/xpresser";
 import "@xpresser/params-loader/CustomRequestEngine";
+import "@xpresser/file-uploader/xpresser";
