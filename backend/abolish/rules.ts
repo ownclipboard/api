@@ -4,10 +4,10 @@
  * Rules declared here is used by to abolish middleware to validate request body.
  */
 import AbolishRoutes from "@xpresser/abolish/dist/AbolishRoutes";
-import { skipIfUndefined } from "abolish/src/Functions";
 import { isPasswordRequired, isString, isStringRequired, isUsername } from "./reusables";
 import Content from "../models/Content";
-import { $joi } from "abolish/src/Joi";
+import { skipIfUndefined } from "abolish/src/helpers";
+import { $joi } from "abolish/others/joi";
 
 const validate = new AbolishRoutes();
 

@@ -26,7 +26,5 @@ export = ((next, $) => {
     // Log success.
     $.logSuccess(`Uploads folder: [storage/${uploadsFolder.initial}]`);
 
-    console.log(uploadsFolder);
-
     return next();
 }) as TodoFunction;

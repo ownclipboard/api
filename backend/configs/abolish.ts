@@ -7,8 +7,7 @@
 import { Abolish } from "abolish";
 import { Http } from "xpresser/types/http";
 import type AbolishError from "abolish/src/AbolishError";
-
-Abolish.useJoi();
+import { useJoi } from "abolish/others/joi";
 
 export = () => ({
     /**
@@ -29,7 +28,9 @@ export = () => ({
     /**
      * Abolish Instance Extender.
      */
-    extendAbolish() {
+    provideAbolish() {
+        useJoi(Abolish);
+
         // Extend Abolish here.
         Abolish.addGlobalValidators(require("abolish/validators/string"));
         Abolish.addGlobalValidators(require("abolish/validators/array"));

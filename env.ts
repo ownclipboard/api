@@ -1,4 +1,4 @@
-import EnvLoader from "@xpresser/env";
+import { LoadEnv } from "@xpresser/env";
 
 // Declare envFile path.
 let envFile = __dirname + "/.env";
@@ -24,7 +24,7 @@ type env = {
 };
 
 // Load Env
-const env = EnvLoader<env>(envFile, {
+const env = LoadEnv<env>(envFile, {
     castBoolean: true,
     required: [
         "NODE_ENV",
