@@ -5,6 +5,6 @@
     ]
   },
   "middlewares": {
-    "Abolish": "npm://@xpresser/abolish/dist/AbolishMiddleware.js"
+    "Abolish": "npm://@xpresser/abolish/AbolishMiddleware.js"
   }
 }

@@ -3,13 +3,15 @@
  *
  * Rules declared here is used by to abolish middleware to validate request body.
  */
-import AbolishRoutes from "@xpresser/abolish/dist/AbolishRoutes";
-import { isPasswordRequired, isString, isStringRequired, isUsername } from "./reusables";
+
 import Content from "../models/Content";
+import RoutesGuard from "@xpresser/abolish/RoutesGuard";
 import { skipIfUndefined } from "abolish/src/helpers";
 import { $joi } from "abolish/others/joi";
+import { isPasswordRequired, isString, isStringRequired, isUsername } from "./reusables";
 
-const validate = new AbolishRoutes();
+
+const validate = new RoutesGuard();
 
 // Validate Login Route
 validate.post("Auth@login", {

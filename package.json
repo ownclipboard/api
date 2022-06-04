@@ -15,7 +15,7 @@
     "js-dev": "npx nodemon build/ownclipboard.js"
   },
   "dependencies": {
-    "@xpresser/abolish": "^1.12.0",
+    "@xpresser/abolish": "^2.0.1",
     "@xpresser/env": "^2.0.8",
     "@xpresser/file-uploader": "^2.1.1",
     "@xpresser/jwt": "^1.0.8",
