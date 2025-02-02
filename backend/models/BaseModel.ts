@@ -1,6 +1,6 @@
-import { omitIdAndPick, XMongoModel } from "xpress-mongo";
-import { XMongoStrictConfig } from "xpress-mongo/src/CustomTypes";
+import { XMongoModel } from "xpress-mongo";
 import { escapeRegexp } from "xpress-mongo/fn/helpers";
+import { XMongoStrictConfig } from "xpress-mongo/src/types";
 
 class BaseModel extends XMongoModel {
     static strict: XMongoStrictConfig = true;
@@ -11,16 +11,14 @@ class BaseModel extends XMongoModel {
     /**
      * Returns the public field defined in a model.
      */
-    getPublicFields() {
-        return this.toCollection().pick(this.$static<typeof BaseModel>().publicFields);
-    }
+
 
     /**
      * Returns mongodb projection query using public fields
      */
-    static projectPublicFields(): any {
-        return omitIdAndPick(this.publicFields);
-    }
+    // static projectPublicFields(): any {
+    //     return omitIdAndPick(this.publicFields);
+    // }
 
     /**
      * Get uuid helper

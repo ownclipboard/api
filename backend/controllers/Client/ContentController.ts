@@ -4,8 +4,8 @@ import type { ObjectId } from "xpress-mongo";
 import { omitIdAndPick } from "xpress-mongo";
 import Folder, { FolderDataType } from "../../models/Folder";
 import { DefaultPaginationData } from "xpress-mongo/fn/helpers";
-import { skipIfUndefined } from "abolish/src/Functions";
 import { isString, isStringRequired } from "../../abolish/reusables";
+import { skipIfUndefined } from "abolish/src/helpers";
 
 /**
  * ContentController

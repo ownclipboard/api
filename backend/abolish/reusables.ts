@@ -3,7 +3,7 @@
  * Reducing redundancy when declaring rules.
  */
 import { Rule } from "abolish/src/Functions";
-import { ParseRules } from "abolish";
+import { Schema } from "abolish";
 
 export const isString = Rule([
     "typeof:string|string:trim",
@@ -26,7 +26,7 @@ export const isPasswordRequired = Rule([isStringRequired, "minLength:6|maxLength
 
 export type PaginationRules = { page: number; perPage: number };
 
-export const PaginationRules = ParseRules<PaginationRules>({
+export const PaginationRules = Schema({
     page: "default:1|number|min:1",
     perPage: "default:30|number|max:1000"
 });
