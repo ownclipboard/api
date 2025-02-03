@@ -10,8 +10,9 @@
   "scripts": {
     "start": "npm run build && node build/ownclipboard.js",
     "build": "npx xjs @stack tsc",
-    "ts-watch": "npx tsc --watch",
+    "ts-watch": "npx tsx --watch",
     "ts-dev": "npx ts-node-dev --respawn ownclipboard.ts",
+    "ts:dev": "npx tsx watch ownclipboard.ts",
     "js-dev": "npx nodemon build/ownclipboard.js"
   },
   "dependencies": {
@@ -26,6 +27,7 @@
     "nanoid": "^3.3.4",
     "readable-timeout": "^1.0.0",
     "slugify": "^1.6.6",
+    "tsx": "^4.19.2",
     "xpress-mongo": "^3.0.4",
     "xpresser": "^0.32.8"
   },
