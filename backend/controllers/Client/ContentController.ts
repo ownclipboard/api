@@ -6,6 +6,7 @@ import Folder, { FolderDataType } from "../../models/Folder";
 import { DefaultPaginationData } from "xpress-mongo/fn/helpers";
 import { isString, isStringRequired } from "../../abolish/reusables";
 import { skipIfUndefined } from "abolish/src/helpers";
+import { oc_stringSize } from "../../functions";
 
 /**
  * ContentController
@@ -91,6 +92,9 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
                 content.setContextType();
             }
         }
+
+        // Set content size
+        content.data.size = oc_stringSize(content.data.context);
 
         // Save content
         await content.save();

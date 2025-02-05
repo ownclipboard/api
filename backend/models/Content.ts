@@ -1,4 +1,4 @@
-import { is, ObjectId, RefreshDateOnUpdate, XMongoSchema } from "xpress-mongo";
+import { is, joi, ObjectId, RefreshDateOnUpdate, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
 import BaseModel, { IndexUuid } from "./BaseModel";
 import bcrypt from "bcryptjs";
@@ -21,6 +21,7 @@ export interface ContentDataType {
     folder: "clipboard" | "encrypted" | string;
     visibility: "public" | "private" | "encrypted";
     publicPaste?: boolean;
+    size: { human: string, bytes: number };
     context: string;
     encrypted: boolean;
     password?: string;
@@ -42,6 +43,11 @@ class Content extends BaseModel {
         folder: is.String("clipboard").required(),
         visibility: is.InArray(["public", "private", "encrypted"], "public").required(),
         context: is.String().required(),
+        
+        size: joi.object({
+            human: joi.string().required(),
+            bytes: joi.number().required()
+        }).required(),
 
         password: is.String().undefined(),
         encrypted: is.Boolean().undefined(),
