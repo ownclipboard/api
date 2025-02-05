@@ -16,6 +16,7 @@ export interface UserDataType {
     password: string;
     email?: string;
     joinedAt: Date;
+    plan?: "free" | "pro";
 }
 
 class User extends BaseModel {
@@ -26,10 +27,11 @@ class User extends BaseModel {
         username: is.String().required(),
         password: is.String().required(),
         email: is.String().optional(),
-        joinedAt: is.Date().required()
+        joinedAt: is.Date().required(),
+        plan: is.InArray(["free", "pro"], "free").optional()
     };
 
-    static publicFields = ["username", "email"];
+    static publicFields = ["username", "email", "joinedAt", "plan"];
 
     // SET Type of this.data.
     public data!: UserDataType;
