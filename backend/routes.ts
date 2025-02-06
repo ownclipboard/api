@@ -53,4 +53,8 @@ r.path("/client/v1/", () => {
             r.post("@disablePublicPaste");
         }).middlewares(["Auth.validateToken", "params.folder"]);
     });
+
+    r.path("account", () => {
+        r.post("@setPlan")
+    }).controller("Client/Account");
 });
