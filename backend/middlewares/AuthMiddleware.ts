@@ -3,6 +3,7 @@ import { verifyJwt } from "@xpresser/jwt";
 import User from "../models/User";
 import { $ } from "../../xpresser";
 import { ObjectId } from "xpress-mongo";
+import { AuthData } from "../types/models";
 
 /**
  * AuthMiddleware
@@ -35,17 +36,18 @@ export = {
             if (!user)
                 return http.badRequestError("Account Not Found!");
 
-
             // compare login token
             if (user.data.loginToken !== data.loginToken)
                 return http.badRequestError("Session Expired!, Please Login Again!");
 
 
-            http.state.set("authData", {
-                id: authId,
+            http.state.set("authData", <AuthData>{
+                _id: authId,
                 username: user.data.username,
-                publicId: user.data.publicId
+                publicId: user.data.publicId,
+                plan: user.data.plan
             });
+
 
             // Add to boot for easy controller access.
             http.addToBoot("authId", authId);

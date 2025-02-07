@@ -1,4 +1,4 @@
-import { CreateIndex, is, XMongoSchema } from "xpress-mongo";
+import { CreateIndex, is, ObjectId, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
 import BaseModel from "./BaseModel";
 import Folder from "./Folder";
@@ -14,6 +14,7 @@ import { oc_nanoid } from "../functions/string.fn";
  * this.data.createdAt // type Date
  */
 export interface UserDataType {
+    _id: ObjectId;
     username: string;
     publicId: string;
     password: string;

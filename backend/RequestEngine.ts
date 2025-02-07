@@ -1,15 +1,12 @@
 import { ObjectId } from "xpress-mongo";
 import { $ } from "../xpresser";
 import type { ValidationError } from "abolish/src/types";
+import type { AuthData } from "./types/models";
 
 class RequestEngine extends $.extendedRequestEngine() {
 
     authData() {
-        return this.state.get<{
-            id: ObjectId;
-            username: string;
-            publicId: string;
-        }>("authData")!;
+        return this.state.get<AuthData>("authData")!;
     }
 
     /**
@@ -23,7 +20,7 @@ class RequestEngine extends $.extendedRequestEngine() {
      * Get current authenticated userId
      */
     authUserId(): ObjectId {
-        return this.authData()!.id;
+        return this.authData()!._id;
     }
     /**
      * Set default pagination queries.

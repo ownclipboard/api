@@ -1,5 +1,7 @@
 import type { Controller, Http } from "xpresser/types/http";
 import { compileSchemaT } from "abolish";
+import User, { UserDataType } from "../../models/User";
+import Subscription from "../../models/Subscription";
 
 const SetPlanSchema = compileSchemaT({
     plan: { required: true, string: true, inArray: ["free", "pro"] }
@@ -21,12 +23,33 @@ export = <Controller.Object>{
      * Set Plan
      * @param http - Current Http Instance
      */
-    setPlan(http) {
-        const [err, body] = http.validateBody(SetPlanSchema);
+    async setPlan(http) {
+        type body = { plan: UserDataType["plan"] };
+        const [err, body] = http.validateBody<body>(SetPlanSchema);
         if (err) return http.abolishError(err);
 
-        console.log(http.authUserId());
+        const user = http.authData();
 
-        return { body }
+        if (user.plan === body.plan) {
+            return http.badRequestError("Plan is already set to " + body.plan);
+        }
+
+
+        // if plan is pro, then it is try pro
+        // create subscription
+        if(body.plan === "pro") {
+            const sub =  Subscription.create(user._id, "pro", "trial", 0, 1)
+            sub.data.status = "active";
+            await sub.save()
+        }
+
+
+        await User.native().updateOne(
+            { _id: user._id },
+            { $set: { plan: body.plan } }
+        );
+
+
+        return { message: "Plan updated successfully!" };
     }
 };
