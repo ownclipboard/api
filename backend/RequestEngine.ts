@@ -3,18 +3,27 @@ import { $ } from "../xpresser";
 import type { ValidationError } from "abolish/src/types";
 
 class RequestEngine extends $.extendedRequestEngine() {
+
+    authData() {
+        return this.state.get<{
+            id: ObjectId;
+            username: string;
+            publicId: string;
+        }>("authData")!;
+    }
+
     /**
      * Check if user is logged!
      */
     isLogged() {
-        return !!this.authUserId();
+        return !!this.authData();
     }
 
     /**
      * Get current authenticated userId
      */
     authUserId(): ObjectId {
-        return this.state.get("auth.userId");
+        return this.authData()!.id;
     }
     /**
      * Set default pagination queries.

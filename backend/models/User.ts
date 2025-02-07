@@ -33,7 +33,7 @@ export interface UserDataType {
      */
     loginToken: string;
 }
-is.String().required().schema.default
+
 class User extends BaseModel {
     /**
      * Model Schema
@@ -44,11 +44,11 @@ class User extends BaseModel {
         password: is.String().required(),
         email: is.String().optional(),
         joinedAt: is.Date().required(),
-        plan: is.InArray(["free", "pro"], "free").optional(),
+        plan: is.InArray(["free", "pro"]).optional(),
         loginToken: is.String(() => oc_nanoid(21)).required()
     };
 
-    static publicFields = ["username", "email", "joinedAt", "plan"];
+    static publicFields = ["username", "publicId", "email", "joinedAt", "plan"];
 
     // SET Type of this.data.
     public data!: UserDataType;

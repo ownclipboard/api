@@ -47,7 +47,8 @@ export = <Controller.Object>{
      */
     async login(http, _, e) {
         type body = { username: string; password: string };
-        const [err, body] = http.validateBody<body>(LoginSchema);
+
+        const [err, body] = await http.validateBodyAsync<body>(LoginSchema);
         if (err) return http.abolishError(err);
 
 
@@ -88,7 +89,7 @@ export = <Controller.Object>{
         // Get abolish validated body
         type body = { username: string; password: string };
 
-        const [err, body] = http.validateBody<body>(SignupSchema);
+        const [err, body] = await http.validateBodyAsync<body>(SignupSchema);
         if (err) return http.abolishError(err);
 
         const { username, password } = body;

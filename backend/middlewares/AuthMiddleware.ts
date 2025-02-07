@@ -12,7 +12,7 @@ export = {
      * Default Middleware Action
      * @param {Xpresser.Http} http
      */
-    async validateToken(http: Http): Promise<any> {
+    async validateToken(http: Http) {
         // Get token from header
         const { oc_token } = http.req.headers;
 
@@ -30,18 +30,21 @@ export = {
             let authId: string | ObjectId = $.base64.decode(data.id);
             authId = User.id(authId); // convert to ObjectId
 
-            const user = await User.findOne({ _id: authId });
+            const user = await User.findById(authId);
 
             if (!user)
-                return http.status(401).send({
-                    error: "Invalid Auth Account!"
-                });
+                return http.badRequestError("Account Not Found!");
 
-            // Set auth.userId to state.
-            http.state.set("auth.userId", authId);
+
+            // compare login token
+            if (user.data.loginToken !== data.loginToken)
+                return http.badRequestError("Session Expired!, Please Login Again!");
+
+
             http.state.set("authData", {
                 id: authId,
-                username: user.data.username
+                username: user.data.username,
+                publicId: user.data.publicId
             });
 
             // Add to boot for easy controller access.
@@ -50,7 +53,7 @@ export = {
             // Continue
             return http.next();
         } catch (e: any) {
-            return http.status(401).json({ error: "Invalid Auth Token!" });
+            return http.badRequestError("Invalid Auth Token!");
         }
     }
 };
