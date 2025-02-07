@@ -8,27 +8,11 @@ import Content from "../models/Content";
 import RoutesGuard from "@xpresser/abolish/RoutesGuard";
 import { skipIfUndefined } from "abolish/src/helpers";
 import { $joi } from "abolish/others/joi";
-import { isPasswordRequired, isString, isStringRequired, isUsername } from "./reusables";
+import { isString, isStringRequired } from "./reusables";
 
 
 const validate = new RoutesGuard();
 
-// Validate Login Route
-validate.post("Auth@login", {
-    username: [isUsername, "UsernameExists"],
-    password: isPasswordRequired
-});
-
-// Validate Signup Route
-validate.post("Auth@signup", {
-    username: [isUsername, "!UsernameExists"],
-    password: isPasswordRequired
-});
-
-// Validate check username route
-validate.post("Auth@checkUsername", {
-    username: isUsername
-});
 
 // Validate paste route
 validate.post("Client/Content@paste", (http) => ({

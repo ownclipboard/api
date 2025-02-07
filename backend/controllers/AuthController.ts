@@ -4,7 +4,24 @@ import User, { UserDataType } from "../models/User";
 import { pickKeys, XMongoDataType } from "xpress-mongo";
 import { signJwt } from "@xpresser/jwt";
 import { $ } from "../../xpresser";
-import { Abolish } from "abolish";
+import { Abolish, compileSchemaT } from "abolish";
+import { isPasswordRequired, isUsername } from "../abolish/reusables";
+
+
+const LoginSchema = compileSchemaT({
+    username: [isUsername, "UsernameExists"],
+    password: isPasswordRequired
+})
+
+const SignupSchema = compileSchemaT({
+    username: [isUsername, "!UsernameExists"],
+    password: isPasswordRequired
+})
+
+const CheckUsernameSchema = compileSchemaT({
+    username: isUsername
+})
+
 
 /**
  * AuthController
@@ -29,8 +46,13 @@ export = <Controller.Object>{
      * @param e - error handler
      */
     async login(http, _, e) {
+        type body = { username: string; password: string };
+        const [err, body] = http.validateBody<body>(LoginSchema);
+        if (err) return http.abolishError(err);
+
+
         // Get abolish validated body
-        const { username, password } = http.validatedBody<{ username: string; password: string }>();
+        const { username, password } = body;
 
         // Get user and password from db
         const user = (await User.findOne({ username }, { projection: pickKeys(["password", "loginToken", "plan"]) }))!;
@@ -65,7 +87,11 @@ export = <Controller.Object>{
     async signup(http) {
         // Get abolish validated body
         type body = { username: string; password: string };
-        const { username, password } = http.validatedBody<body>();
+
+        const [err, body] = http.validateBody<body>(SignupSchema);
+        if (err) return http.abolishError(err);
+
+        const { username, password } = body;
 
         // Make new user
         const user = User.make(<UserDataType>{ username });
@@ -95,11 +121,13 @@ export = <Controller.Object>{
      * @param http
      */
     async checkUsername(http) {
-        // Get abolish validated body
-        const { username } = http.validatedBody<{ username: string }>();
+        type body = { username: string };
+
+        const [err, body] = http.validateBody<body>(CheckUsernameSchema);
+        if (err) return http.abolishError(err);
 
         // Check if username exists
-        const exists = await Abolish.testAsync(username, "UsernameExists");
+        const exists = await Abolish.testAsync(body.username, "UsernameExists");
 
         // Return response
         return { exists };
