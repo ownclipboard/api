@@ -1,7 +1,7 @@
 import { Controller, Http } from "xpresser/types/http";
 import bcrypt from "bcryptjs";
 import User, { UserDataType } from "../models/User";
-import { pickKeys } from "xpress-mongo";
+import { pickKeys, XMongoDataType } from "xpress-mongo";
 import { signJwt } from "@xpresser/jwt";
 import { $ } from "../../xpresser";
 import { Abolish } from "abolish";
@@ -28,22 +28,35 @@ export = <Controller.Object>{
      * @param boot - Boot return data.
      * @param e - error handler
      */
-    async login(http, boot, e) {
+    async login(http, _, e) {
         // Get abolish validated body
         const { username, password } = http.validatedBody<{ username: string; password: string }>();
 
-        // Get user  and password from db
-        const user = (await User.findOne({ username }, { projection: pickKeys(["password"]) }))!;
+        // Get user and password from db
+        const user = (await User.findOne({ username }, { projection: pickKeys(["password", "loginToken", "plan"]) }))!;
 
         // check password
         if (!bcrypt.compareSync(password, user.data.password)) return e("Password is incorrect!");
 
+        let loginToken = user.data.loginToken;
+
+        // If no login token, for some reason, create one.
+        if (!loginToken) {
+            loginToken = (User.schema.loginToken as XMongoDataType).schema.default();
+            await user.update({ loginToken });
+        }
+
         // Create Jwt Token
         const token = signJwt({
-            id: $.base64.encode(user.id().toString())
+            id: $.base64.encode(user.id().toString()),
+            username: user.data.username,
+            loginToken
         });
 
-        return { token };
+        return {
+            token,
+            plan: user.data.plan ?? null
+        };
     },
 
     /**

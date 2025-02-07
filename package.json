@@ -10,7 +10,6 @@
   "scripts": {
     "start": "npm run build && node build/ownclipboard.js",
     "build": "npx xjs @stack tsc",
-    "ts-watch": "npx tsx --watch",
     "ts-dev": "npx ts-node-dev --respawn ownclipboard.ts",
     "ts:dev": "npx tsx watch ownclipboard.ts",
     "js-dev": "npx nodemon build/ownclipboard.js"

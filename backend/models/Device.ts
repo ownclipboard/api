@@ -1,6 +1,7 @@
-import { is, ObjectId, XMongoSchema } from "xpress-mongo";
+import { CreateIndex, is, ObjectId, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
-import BaseModel, { IndexUuid } from "./BaseModel";
+import BaseModel from "./BaseModel";
+import { PublicIdSchema } from "./schemas/schemas";
 
 /**
  * Interface for Model's `this.data`. (For Typescript)
@@ -13,7 +14,7 @@ import BaseModel, { IndexUuid } from "./BaseModel";
 export interface DeviceDataType {
     userId: ObjectId;
     name: string;
-    uuid: string;
+    publicId: string;
     apiKey: string;
     hits: number;
     enabled: boolean;
@@ -28,7 +29,7 @@ class Device extends BaseModel {
     static schema: XMongoSchema<DeviceDataType> = {
         userId: is.ObjectId().required(),
         name: is.String().required(),
-        uuid: is.Uuid(4).required(),
+        publicId: PublicIdSchema().required(),
         apiKey: is.String().required(),
         hits: is.Number().required(),
         enabled: is.Boolean().required(),
@@ -45,9 +46,7 @@ class Device extends BaseModel {
  * .native() will be made available for use.
  */
 UseCollection(Device, "devices");
-
-// Index Uuid
-IndexUuid(Device);
+CreateIndex(Device,"publicId", true);
 
 // Export Model as Default
 export default Device;

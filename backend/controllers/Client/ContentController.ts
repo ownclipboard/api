@@ -26,7 +26,7 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
     },
 
     /**
-     * Find contents by uuid with public paste id
+     * Find contents by publicId with public paste id
      * @param http
      */
     async find(http) {

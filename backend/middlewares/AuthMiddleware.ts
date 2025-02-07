@@ -30,13 +30,20 @@ export = {
             let authId: string | ObjectId = $.base64.decode(data.id);
             authId = User.id(authId); // convert to ObjectId
 
-            if (!(await User.exists({ _id: authId })))
+            const user = await User.findOne({ _id: authId });
+
+            if (!user)
                 return http.status(401).send({
                     error: "Invalid Auth Account!"
                 });
 
             // Set auth.userId to state.
             http.state.set("auth.userId", authId);
+            http.state.set("authData", {
+                id: authId,
+                username: user.data.username
+            });
+
             // Add to boot for easy controller access.
             http.addToBoot("authId", authId);
 

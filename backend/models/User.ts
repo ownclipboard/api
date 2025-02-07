@@ -1,7 +1,9 @@
-import { is, XMongoSchema } from "xpress-mongo";
+import { CreateIndex, is, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
 import BaseModel from "./BaseModel";
 import Folder from "./Folder";
+import { PublicIdSchema } from "./schemas/schemas";
+import { oc_nanoid } from "../functions/string.fn";
 
 /**
  * Interface for Model's `this.data`. (For Typescript)
@@ -13,22 +15,37 @@ import Folder from "./Folder";
  */
 export interface UserDataType {
     username: string;
+    publicId: string;
     password: string;
     email?: string;
     joinedAt: Date;
     plan?: "free" | "pro";
-}
 
+    /**
+     * Login Token
+     * This token is used to clear all user login sessions.
+     * It is embedded in the jwt token.
+     * So if it changes, all user sessions will be invalidated.
+     * It will be refreshed under these conditions:
+     *  - User changes password
+     *  - User clears all sessions
+     *  - User is banned
+     */
+    loginToken: string;
+}
+is.String().required().schema.default
 class User extends BaseModel {
     /**
      * Model Schema
      */
     static schema: XMongoSchema<UserDataType> = {
         username: is.String().required(),
+        publicId: PublicIdSchema(undefined, 10).required(),
         password: is.String().required(),
         email: is.String().optional(),
         joinedAt: is.Date().required(),
-        plan: is.InArray(["free", "pro"], "free").optional()
+        plan: is.InArray(["free", "pro"], "free").optional(),
+        loginToken: is.String(() => oc_nanoid(21)).required()
     };
 
     static publicFields = ["username", "email", "joinedAt", "plan"];
@@ -56,6 +73,7 @@ class User extends BaseModel {
  * .native() will be made available for use.
  */
 UseCollection(User, "users");
+CreateIndex(User, "publicId", true)
 
 // Export Model as Default
 export default User;

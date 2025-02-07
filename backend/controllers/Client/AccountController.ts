@@ -1,4 +1,10 @@
 import type { Controller, Http } from "xpresser/types/http";
+import { compileSchemaT } from "abolish";
+
+const SetPlanSchema = compileSchemaT({
+    plan: { required: true, string: true, inArray: ["free", "pro"] }
+});
+
 
 /**
  * AccountController
@@ -12,12 +18,15 @@ export = <Controller.Object>{
 
 
     /**
-    * Example Action.
-    * @param http - Current Http Instance
-    */
+     * Set Plan
+     * @param http - Current Http Instance
+     */
     setPlan(http) {
-        return http.send({
-            route: http.route
-        });
+        const [err, body] = http.validateBody(SetPlanSchema);
+        if (err) return http.abolishError(err);
+
+        console.log(http.authUserId());
+
+        return { body }
     }
 };

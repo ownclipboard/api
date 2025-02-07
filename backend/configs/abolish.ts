@@ -6,8 +6,8 @@
  */
 import { Abolish } from "abolish";
 import { Http } from "xpresser/types/http";
-import type AbolishError from "abolish/src/AbolishError";
 import { useJoi } from "abolish/others/joi";
+import { type ValidationError } from "abolish/src/types";
 
 export = () => ({
     /**
@@ -20,8 +20,8 @@ export = () => ({
         // Validation File Path
         file: "backend://abolish/Rules",
         // On Validation Error
-        onError(http: Http, err: AbolishError) {
-            return http.status(400).json({ error: err.message });
+        onError(http: Http, err: ValidationError) {
+            return http.abolishError(err)
         }
     },
 

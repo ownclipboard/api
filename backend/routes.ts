@@ -56,5 +56,5 @@ r.path("/client/v1/", () => {
 
     r.path("account", () => {
         r.post("@setPlan")
-    }).controller("Client/Account");
+    }).controller("Client/Account").middlewares(["Auth.validateToken"]);
 });

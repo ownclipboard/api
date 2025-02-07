@@ -1,5 +1,6 @@
 import { ObjectId } from "xpress-mongo";
 import { $ } from "../xpresser";
+import type { ValidationError } from "abolish/src/types";
 
 class RequestEngine extends $.extendedRequestEngine() {
     /**
@@ -15,7 +16,6 @@ class RequestEngine extends $.extendedRequestEngine() {
     authUserId(): ObjectId {
         return this.state.get("auth.userId");
     }
-
     /**
      * Set default pagination queries.
      */
@@ -41,10 +41,21 @@ class RequestEngine extends $.extendedRequestEngine() {
      * @param message
      * @param status
      */
-    error(message: string, status: number = 500) {
+    error(message: string, status: number = 500, data?: Record<string, any>) {
         return this.status(status).json({
-            error: message
+            error: message,
+            ...(data || {})
         });
+    }
+
+    /**
+     * Abolish Error
+     */
+    abolishError(error: ValidationError) {
+        return this.error(error.message, 400, {
+            field: error.key
+        });
+
     }
 }
 

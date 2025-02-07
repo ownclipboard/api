@@ -1,9 +1,10 @@
-import { is, joi, ObjectId, RefreshDateOnUpdate, XMongoSchema } from "xpress-mongo";
+import { CreateIndex, is, joi, ObjectId, RefreshDateOnUpdate, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
-import BaseModel, { IndexUuid } from "./BaseModel";
+import BaseModel from "./BaseModel";
 import bcrypt from "bcryptjs";
 import Folder, { FolderDataType } from "./Folder";
 import { Abolish } from "abolish";
+import { PublicIdSchema } from "./schemas/schemas";
 
 /**
  * Interface for Model's `this.data`. (For Typescript)
@@ -15,7 +16,7 @@ import { Abolish } from "abolish";
  */
 export interface ContentDataType {
     userId: ObjectId;
-    uuid: string;
+    publicId: string;
     title: string;
     type: "text" | "url" | "html" | "image";
     folder: "clipboard" | "encrypted" | string;
@@ -37,7 +38,7 @@ class Content extends BaseModel {
      */
     static schema: XMongoSchema<ContentDataType> = {
         userId: is.ObjectId().required(),
-        uuid: is.Uuid(4).required(),
+        publicId: PublicIdSchema().required(),
         title: is.String(),
         type: is.String("text").required(),
         folder: is.String("clipboard").required(),
@@ -112,15 +113,17 @@ class Content extends BaseModel {
  * .native() will be made available for use.
  */
 UseCollection(Content, "contents");
+CreateIndex(Content, "publicId", true);
+CreateIndex(Content, ["userId", "folder"]);
 
-// Index Uuid
-IndexUuid(Content);
+
+
 
 // Index userId & folder
-Promise.all([
-    Content.native().createIndex({ folder: 1 }),
-    Content.native().createIndex({ userId: 1 })
-]).catch(console.error);
+// Promise.all([
+//     Content.native().createIndex({ folder: 1 }),
+//     Content.native().createIndex({ userId: 1 })
+// ]).catch(console.error);
 
 // Refresh "updatedAt" on update if has changes.
 RefreshDateOnUpdate(Content, "updatedAt", true);

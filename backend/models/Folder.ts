@@ -1,8 +1,9 @@
-import { is, joi, ObjectId, XMongoSchema } from "xpress-mongo";
+import { CreateIndex, is, joi, ObjectId, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
 import BaseModel from "./BaseModel";
 import slugify from "slugify";
 import bcrypt from "bcryptjs";
+import { PublicIdSchema } from "./schemas/schemas";
 
 /**
  * Interface for Model's `this.data`. (For Typescript)
@@ -13,6 +14,7 @@ import bcrypt from "bcryptjs";
  * this.data.createdAt // type Date
  */
 export interface FolderDataType {
+    publicId: string;
     name: string;
     slug: string;
     userId: ObjectId;
@@ -32,9 +34,10 @@ class Folder extends BaseModel {
      * Model Schema
      */
     static schema: XMongoSchema<FolderDataType> = {
+        publicId: PublicIdSchema().required(),
         name: is.String().required(),
         userId: is.ObjectId().required(),
-        slug: is.String().required().unique(),
+        slug: is.String().required(),
         visibility: is.InArray(["public", "private", "encrypted"], "public").required(),
         password: is.String(),
 
@@ -90,12 +93,9 @@ class Folder extends BaseModel {
  * .native() will be made available for use.
  */
 UseCollection(Folder, "folders");
+CreateIndex(Folder, "publicId", true);
+CreateIndex(Folder, ["userId", "slug"], true);
 
-// Index userId & slug
-Promise.all([
-    Folder.native().createIndex({ userId: 1 }),
-    Folder.native().createIndex({ slug: 1 })
-]).catch(console.error);
 
 // Export Model as Default
 export default Folder;

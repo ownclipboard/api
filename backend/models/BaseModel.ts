@@ -21,9 +21,9 @@ class BaseModel extends XMongoModel {
     // }
 
     /**
-     * Get uuid helper
+     * Get publicId helper
      * @example
-     *  content.uuid()
+     *  content.publicId()
      */
     uuid(): string {
         return this.data.uuid;
@@ -66,10 +66,7 @@ class BaseModel extends XMongoModel {
 
         return { $or, ...$options.where };
     }
-}
 
-export function IndexUuid(Model: typeof XMongoModel) {
-    Model.native().createIndex({ uuid: 1 }, { unique: true }).catch(console.log);
 }
 
 export default BaseModel;

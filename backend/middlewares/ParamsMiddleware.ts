@@ -1,6 +1,5 @@
 import { ParamsMiddleware } from "@xpresser/params-loader";
-import Folder from "../models/Folder";
-import folder, { FolderDataType } from "../models/Folder";
+import Folder, { FolderDataType } from "../models/Folder";
 import Content, { ContentDataType } from "../models/Content";
 
 // Define your params
@@ -27,7 +26,7 @@ export = ParamsMiddleware({
         addToBoot: true,
         load: (uuid) => {
             // Find clip using userId
-            return Content.findOne(<ContentDataType>{ uuid });
+            return Content.findOne(<ContentDataType>{ publicId: uuid });
         },
         notFound: (http, clip) => {
             // If clip is not found then return 404
