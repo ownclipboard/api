@@ -17,6 +17,14 @@ export interface SubscriptionDataType {
     expiresAt: Date;
 }
 
+export type SubStat = {
+    type: SubscriptionDataType["type"];
+    status: SubscriptionDataType["status"];
+    duration: SubscriptionDataType["duration"];
+    expiresAt: SubscriptionDataType["expiresAt"];
+    expired: boolean;
+}
+
 
 class Subscription extends XMongoModel {
     /**
@@ -32,6 +40,8 @@ class Subscription extends XMongoModel {
         duration: is.Number().optional(),
         expiresAt: is.Date().optional()
     };
+
+    static publicFields = ["type", "createdAt", "plan", "amount", "status", "duration", "expiresAt"];
 
     // SET Type of this.data.
     public data!: SubscriptionDataType;
@@ -69,6 +79,18 @@ class Subscription extends XMongoModel {
             duration,
             expiresAt: new Date(Date.now() + (1000 * 60 * 60 * 24 * expiresDuration))
         })
+    }
+
+
+    toStat(): SubStat {
+        const { type, status, duration, expiresAt } = this.data;
+        return {
+            type,
+            status,
+            duration,
+            expiresAt,
+            expired: expiresAt < new Date()
+        }
     }
 }
 

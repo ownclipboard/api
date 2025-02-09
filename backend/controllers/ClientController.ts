@@ -1,5 +1,6 @@
 import { Controller, Http } from "xpresser/types/http";
 import User from "../models/User";
+import Subscription from "../models/Subscription";
 
 /**
  * ClientController
@@ -30,7 +31,12 @@ export = <Controller.Object>{
             });
         }
 
+        const sub = await Subscription.findOne({
+            userId: authId,
+            expiresAt: { $gt: new Date() }
+        }, { sort: { createdAt: -1 } });
+
         // Return only public fields
-        return { user };
+        return { user, subscription: sub?.toStat() };
     }
 };
