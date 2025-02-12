@@ -22,6 +22,7 @@
     "@xpresser/params-loader": "^0.1.8",
     "@xpresser/xpress-mongo": "^2.2.1",
     "abolish": "^6.8.2",
+    "axios": "^1.7.9",
     "bcryptjs": "^2.4.3",
     "nanoid": "^3.3.4",
     "readable-timeout": "^1.0.0",

@@ -33,7 +33,10 @@ export = <Controller.Object>{
 
         const sub = await Subscription.findOne({
             userId: authId,
-            expiresAt: { $gt: new Date() }
+            status: "active"
+            // no expiresAt used because we want to get the last
+            // subscription even if it has expired.
+            // expiresAt: { $gt: new Date() }
         }, { sort: { createdAt: -1 } });
 
         // Return only public fields
