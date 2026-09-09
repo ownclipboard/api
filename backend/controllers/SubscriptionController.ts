@@ -1,11 +1,18 @@
 import type { Controller, Http } from "xpresser/types/http";
 import { compileSchemaT } from "abolish";
 import Subscription, { SubscriptionDataType } from "../models/Subscription";
+import NowPayment from "../lib/NowPayment";
+import { planPrice } from "../lib/Plans";
+import { isStringRequired } from "../abolish/reusables";
 
 const SubscribeSchema = compileSchemaT({
     plan: { required: true, string: true, inArray: ["pro"] },
     duration: { required: true, number: true, min: 1, max: 5 },
     type: { required: true, string: true, inArray: ["monthly", "yearly"] }
+});
+
+const CancelSchema = compileSchemaT({
+    subscription: isStringRequired
 });
 
 /**
@@ -18,42 +25,119 @@ export = <Controller.Object>{
     // Controller Default Error Handler.
     e: (http: Http, error: string) => http.status(401).json({ error }),
 
-
     /**
-     * Example Action.
-     * @param http - Current Http Instance
+     * Create a pending subscription and a NowPayments invoice for it.
+     * Returns the invoice url the client should redirect the user to.
+     *
+     * If the user already has a pending subscription with the same
+     * plan/type/duration and an invoice, that invoice is returned instead.
      */
     async subscribe(http) {
-        type body = Pick<SubscriptionDataType, "plan" | "duration" | "type">;
+        type body = { plan: "pro"; duration: number; type: Exclude<SubscriptionDataType["type"], "trial"> };
 
         const [err, body] = http.validateBody<body>(SubscribeSchema);
         if (err) return http.abolishError(err);
 
         const user = http.authData();
+        const price = planPrice(body.plan, body.type, body.duration);
 
-        // $1 per month
-        // $10 per year
-        let price = 2;
-        if (body.type === "yearly") price = 20;
-        price = price * body.duration;
+        // Reuse a pending subscription of the same shape if it exists.
+        let sub = await Subscription.findOne(
+            {
+                userId: user._id,
+                plan: body.plan,
+                type: body.type,
+                duration: body.duration,
+                status: "pending"
+            },
+            { sort: { createdAt: -1 } }
+        );
 
+        if (sub && sub.data.invoice?.url) {
+            return {
+                subscription: sub.toStat(),
+                invoice: sub.toStat().invoice,
+                message: "You already have a pending invoice for this subscription."
+            };
+        }
 
-        // check if user a pending subscription of the same type
-        let sub = await Subscription.findOne({
-            userId: user._id,
-            plan: body.plan,
-            status: "pending",
-            type: body.type,
-            duration: body.duration
-        });
-
+        const isNew = !sub;
 
         if (!sub) {
             sub = Subscription.create(user._id, body.plan, body.type, price, body.duration);
             await sub.save();
         }
 
+        try {
+            const invoice = await NowPayment.createInvoice(sub);
 
-        return { subscription: sub.toStat(), message: "Subscription created successfully!" };
+            sub.data.invoice = {
+                provider: "nowpayments",
+                id: String(invoice.id),
+                url: invoice.invoice_url,
+                status: "pending",
+                updatedAt: new Date()
+            };
+
+            await sub.save();
+        } catch (e: any) {
+            // Don't leave an orphan subscription behind if the invoice could not be created.
+            if (isNew) await sub.delete();
+            return http.error(e.message || "Failed to create payment invoice.", 502);
+        }
+
+        return {
+            subscription: sub.toStat(),
+            invoice: sub.toStat().invoice,
+            message: "Invoice created, complete your payment to activate your subscription."
+        };
+    },
+
+    /**
+     * Current subscription status:
+     *  - `subscription`: latest active subscription (may be expired)
+     *  - `pending`: pending subscriptions with their invoice, newest first
+     */
+    async status(http) {
+        const userId = http.authUserId();
+
+        const active = await Subscription.findOne(
+            { userId, status: "active" },
+            { sort: { expiresAt: -1 } }
+        );
+
+        const pending = await Subscription.find<SubscriptionDataType>(
+            { userId, status: "pending" },
+            { sort: { createdAt: -1 } }
+        );
+
+        return {
+            subscription: active ? active.toStat() : null,
+            pending: Subscription.fromArray(pending).map((s) => s.toStat())
+        };
+    },
+
+    /**
+     * Cancel a pending (unpaid) subscription.
+     * Paid subscriptions cannot be cancelled here.
+     */
+    async cancel(http) {
+        type body = { subscription: string };
+
+        const [err, body] = http.validateBody<body>(CancelSchema);
+        if (err) return http.abolishError(err);
+
+        const userId = http.authUserId();
+
+        const sub = await Subscription.findOne({ userId, publicId: body.subscription });
+        if (!sub) return http.error("Subscription not found.", 404);
+
+        if (sub.data.status !== "pending") {
+            return http.badRequestError(`Only pending subscriptions can be cancelled. This one is ${sub.data.status}.`);
+        }
+
+        await sub.cancel();
+
+        return { subscription: sub.toStat(), message: "Subscription cancelled." };
     }
 };

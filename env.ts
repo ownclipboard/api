@@ -23,7 +23,13 @@ const env = Env(envFile, {
     DATABASE_NAME: Env.is.string("ownclipboard"),
     DATABASE_PASSWORD: Env.optional.string(),
 
+    // NowPayments (https://nowpayments.io)
     NOW_PAYMENTS_API_KEY: Env.is.string(),
+    // IPN secret from the NowPayments dashboard (Settings > Payments > IPN secret key).
+    // Used to verify the signature of every webhook call.
+    NOW_PAYMENTS_IPN_SECRET: Env.is.string(),
+    // When true, requests go to api-sandbox.nowpayments.io (use a sandbox api key).
+    NOW_PAYMENTS_SANDBOX: Env.is.boolean(false),
 
     WEBHOOK_URL: Env.is.string("http://localhost:3003"),
     FRONTEND_URL: Env.is.string("http://localhost:3000"),

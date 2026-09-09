@@ -55,9 +55,20 @@ r.path("/client/v1/", () => {
     });
 
     r.path("account", () => {
-        r.post("@setPlan")
+        r.post("@setPlan");
+
         r.post("subscribe", "Subscription@subscribe");
+        r.get("subscription", "Subscription@status");
+        r.post("subscription/cancel", "Subscription@cancel");
     }).controller("Client/Account").middlewares(["Auth.validateToken"]);
+});
+
+/**
+ * Payment provider webhooks.
+ * Not under /client/v1 and not auth protected; each handler verifies its own signature.
+ */
+r.path("/webhooks", () => {
+    r.post("nowpayments/ipn", "NowPayments@ipn");
 });
 
 

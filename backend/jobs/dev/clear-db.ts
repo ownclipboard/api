@@ -5,7 +5,7 @@ import Folder from "../../models/Folder";
 import Content from "../../models/Content";
 
 /**
- *  Job: clear:db.ts
+ *  Job: dev/clear-db
  */
 export = {
     // Job Handler
