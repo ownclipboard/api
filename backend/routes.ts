@@ -59,3 +59,9 @@ r.path("/client/v1/", () => {
         r.post("subscribe", "Subscription@subscribe");
     }).controller("Client/Account").middlewares(["Auth.validateToken"]);
 });
+
+
+// 404 Route.
+r.routesAfterPlugins = () => {
+    r.any("*", "Api@notFound");
+};
