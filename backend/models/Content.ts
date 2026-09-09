@@ -61,7 +61,7 @@ class Content extends BaseModel {
     };
 
     static publicFields = [
-        "uuid",
+        "publicId",
         "title",
         "type",
         "folder",

@@ -24,9 +24,9 @@ export = ParamsMiddleware({
 
     clip: {
         addToBoot: true,
-        load: (uuid) => {
+        load: (publicId) => {
             // Find clip using userId
-            return Content.findOne(<ContentDataType>{ publicId: uuid });
+            return Content.findOne(<ContentDataType>{ publicId });
         },
         notFound: (http, clip) => {
             // If clip is not found then return 404

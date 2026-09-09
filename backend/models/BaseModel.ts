@@ -25,8 +25,8 @@ class BaseModel extends XMongoModel {
      * @example
      *  content.publicId()
      */
-    uuid(): string {
-        return this.data.uuid;
+    publicId(): string {
+        return this.data.publicId;
     }
 
     /**

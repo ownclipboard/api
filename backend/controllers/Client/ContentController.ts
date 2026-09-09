@@ -45,7 +45,7 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         const clips = await Content.paginate(
             page,
             perPage,
-            { uuid: { $in: ids }, publicPaste: { $exists: true } },
+            { publicId: { $in: ids }, publicPaste: { $exists: true } },
             { projection: Content.projectPublicFields(), sort: { updatedAt: -1 } }
         );
 
