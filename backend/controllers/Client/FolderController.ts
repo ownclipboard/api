@@ -156,6 +156,6 @@ export = <Controller.Object<{ folder: Folder }>>{
 
     async pasteId(http) {
         const folder = http.loadedParam<Folder>("folder");
-        return { folder };
+        return { folder: folder.getPublicFields() };
     }
 };

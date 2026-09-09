@@ -135,6 +135,9 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
             content.setContextType();
         }
 
+        // Set content size
+        content.data.size = oc_stringSize(content.data.context);
+
         await content.save();
 
         // Return public fields
