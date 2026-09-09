@@ -1,7 +1,7 @@
 import { Controller, Http } from "xpresser/types/http";
 import Folder, { FolderDataType } from "../../models/Folder";
 import bcrypt from "bcryptjs";
-import { nanoid } from "nanoid";
+import { nanoid } from "nanoid"
 import Content from "../../models/Content";
 
 /**
