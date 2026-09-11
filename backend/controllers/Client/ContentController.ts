@@ -22,7 +22,9 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         // Use Abolish to validate all request body.
         Abolish: "*",
         "params.folder": "clips",
-        "params.pasteId": "publicPaste"
+        "params.pasteId": "publicPaste",
+        // Pro only routes
+        IsProUser: "update"
     },
 
     /**
