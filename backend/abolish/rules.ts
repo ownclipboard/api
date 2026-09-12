@@ -73,6 +73,17 @@ validate.post("Client/Content@delete", (http) => {
     };
 });
 
+// Validate copy/move clips routes
+const transferClipsRules = (http: any) => ({
+    ids: $joi((joi) =>
+        joi.array().required().min(1).max(100).items(joi.string().label("ids.*")).label("ids")
+    ),
+    folder: [isStringRequired, { setAuthId: http.authUserId() }, "FolderExists"]
+});
+
+validate.post("Client/Content@copy", transferClipsRules);
+validate.post("Client/Content@move", transferClipsRules);
+
 validate.post("Client/Content@find", {
     ids: $joi((joi) => joi.array().required().items(joi.string().label("ids.*")).label("ids"))
 });

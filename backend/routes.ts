@@ -27,6 +27,9 @@ r.path("/client/v1/", () => {
             r.post("@paste");
             r.post("@upload");
 
+            r.post("@copy");
+            r.post("@move");
+
             // Must be declared before ":folder?" so "search" is not treated as a folder.
             r.get("@search");
 

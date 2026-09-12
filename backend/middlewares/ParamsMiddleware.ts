@@ -24,9 +24,9 @@ export = ParamsMiddleware({
 
     clip: {
         addToBoot: true,
-        load: (publicId) => {
-            // Find clip using userId
-            return Content.findOne(<ContentDataType>{ publicId });
+        load: (publicId, http) => {
+            // Find clip by publicId, scoped to the authenticated user.
+            return Content.findOne(<ContentDataType>{ publicId, userId: http.authUserId() });
         },
         notFound: (http, clip) => {
             // If clip is not found then return 404

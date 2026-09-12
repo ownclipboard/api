@@ -7,6 +7,119 @@ import { DefaultPaginationData, escapeRegexp } from "xpress-mongo/fn/helpers";
 import { isString, isStringRequired } from "../../abolish/reusables";
 import { skipIfUndefined } from "abolish/src/helpers";
 import { oc_stringSize } from "../../functions";
+import { oc_uniqueStringArray } from "../../functions/string.fn";
+import slugify from "slugify";
+
+type TransferSkipReason = "not_found" | "encrypted" | "same_folder";
+
+/**
+ * Copy or move clips into another folder.
+ *
+ * Rules:
+ *  - target folder must belong to the user and must not be encrypted
+ *  - clips in encrypted folders are skipped (their content is ciphertext)
+ *  - clips already in the target folder are skipped
+ *  - if the target already has a clip with identical content, it is merged:
+ *    the existing clip is touched and, on move, the source is deleted
+ */
+async function transferClips(http: Http, userId: ObjectId, mode: "copy" | "move") {
+    const { ids, folder } = http.validatedBody<{ ids: string[]; folder: string }>();
+    const verb = mode === "copy" ? "copied" : "moved";
+
+    const target = await Folder.findOne(<FolderDataType>{
+        userId,
+        slug: slugify(folder, { lower: true, replacement: "-" })
+    });
+
+    if (!target) return http.error(`No folder with name: '${folder}'`, 404);
+    if (target.isEncrypted()) {
+        return http.badRequestError(`Clips cannot be ${verb} into an encrypted folder.`);
+    }
+
+    const uniqueIds = oc_uniqueStringArray(ids);
+    const clips = Content.fromArray(
+        await Content.find<ContentDataType>({ userId, publicId: { $in: uniqueIds } })
+    );
+    const byId = new Map(clips.map((c) => [c.data.publicId, c]));
+
+    // Source folders, to detect clips living in encrypted folders.
+    const sourceSlugs = oc_uniqueStringArray(clips.map((c) => c.data.folder));
+    const encryptedFolders = new Set(
+        (
+            await Folder.find<FolderDataType>(
+                { userId, slug: { $in: sourceSlugs }, visibility: "encrypted" },
+                { projection: { slug: 1 } }
+            )
+        ).map((f) => f.slug)
+    );
+
+    const done: Array<{ id: string; copyId?: string }> = [];
+    const merged: string[] = [];
+    const skipped: Array<{ id: string; reason: TransferSkipReason }> = [];
+
+    for (const id of uniqueIds) {
+        const clip = byId.get(id);
+
+        if (!clip) {
+            skipped.push({ id, reason: "not_found" });
+            continue;
+        }
+
+        if (clip.data.encrypted || encryptedFolders.has(clip.data.folder)) {
+            skipped.push({ id, reason: "encrypted" });
+            continue;
+        }
+
+        if (clip.data.folder === target.data.slug) {
+            skipped.push({ id, reason: "same_folder" });
+            continue;
+        }
+
+        // Merge with an identical clip already in the target folder.
+        const existing = await Content.findOne(<ContentDataType>{
+            userId,
+            folder: target.data.slug,
+            context: clip.data.context
+        });
+
+        if (existing) {
+            existing.data.updatedAt = new Date();
+            await existing.save();
+
+            if (mode === "move") await clip.delete();
+
+            merged.push(id);
+            continue;
+        }
+
+        if (mode === "copy") {
+            const copy = Content.make(<ContentDataType>{
+                userId,
+                title: clip.data.title,
+                context: clip.data.context,
+                type: clip.data.type,
+                size: clip.data.size,
+                folder: target.data.slug
+            });
+
+            await copy.save();
+            done.push({ id, copyId: copy.data.publicId });
+        } else {
+            clip.data.folder = target.data.slug;
+            clip.data.updatedAt = new Date();
+            await clip.save();
+            done.push({ id });
+        }
+    }
+
+    return {
+        folder: target.data.slug,
+        [verb]: done,
+        merged,
+        skipped,
+        message: `${done.length + merged.length} clip(s) ${verb} to '${target.data.name}'.`
+    };
+}
 
 /**
  * ContentController
@@ -24,7 +137,7 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         "params.folder": "clips",
         "params.pasteId": "publicPaste",
         // Pro only routes
-        IsProUser: "update"
+        IsProUser: ["update", "copy"]
     },
 
     /**
@@ -216,6 +329,22 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
             clips,
             info
         };
+    },
+
+    /**
+     * Copy clips into another folder. (Pro)
+     * Body: { ids: string[], folder: string }
+     */
+    copy(http, { authId }) {
+        return transferClips(http, authId, "copy");
+    },
+
+    /**
+     * Move clips into another folder.
+     * Body: { ids: string[], folder: string }
+     */
+    move(http, { authId }) {
+        return transferClips(http, authId, "move");
     },
 
     /**
