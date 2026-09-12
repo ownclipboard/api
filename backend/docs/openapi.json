@@ -1,0 +1,2528 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "OwnClipboard API",
+    "version": "1.0.0",
+    "description": "Client API for OwnClipboard. Authenticated endpoints expect the JWT from `/auth/login` in the `oc_token` header."
+  },
+  "servers": [
+    {
+      "url": "https://trapcode.a.pinggy.link",
+      "description": "This server"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Login and registration."
+    },
+    {
+      "name": "Account",
+      "description": "Profile and plan."
+    },
+    {
+      "name": "Subscription",
+      "description": "Pro plan subscriptions paid through NowPayments."
+    },
+    {
+      "name": "Folders",
+      "description": "Folders that group clips."
+    },
+    {
+      "name": "Clips",
+      "description": "Clipboard contents."
+    },
+    {
+      "name": "Public",
+      "description": "Endpoints that need no authentication (public paste)."
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "ocToken": {
+        "type": "apiKey",
+        "in": "header",
+        "name": "oc_token",
+        "description": "JWT returned by `POST /client/v1/auth/login`."
+      }
+    },
+    "schemas": {
+      "ErrorResponse": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "description": "Human readable error message."
+          },
+          "field": {
+            "type": "string",
+            "description": "Name of the request field that failed validation, when applicable."
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false,
+        "description": "Standard error body."
+      },
+      "MessageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "message"
+        ],
+        "additionalProperties": false,
+        "description": "Simple message body."
+      },
+      "Subscription": {
+        "$ref": "#/components/schemas/SubStat",
+        "description": "Public view of a subscription."
+      },
+      "SubStat": {
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "string",
+            "const": "pro"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "trial",
+              "monthly",
+              "yearly"
+            ]
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "active",
+              "cancelled"
+            ]
+          },
+          "amount": {
+            "type": "number"
+          },
+          "duration": {
+            "type": "number"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expired": {
+            "type": "boolean"
+          },
+          "invoice": {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "type": "string",
+                "const": "nowpayments"
+              },
+              "id": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "status": {
+                "$ref": "#/components/schemas/InvoiceStatus"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "provider",
+              "id",
+              "status"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "publicId",
+          "plan",
+          "type",
+          "status",
+          "amount",
+          "duration",
+          "createdAt",
+          "expired"
+        ],
+        "additionalProperties": false
+      },
+      "InvoiceStatus": {
+        "type": "string",
+        "enum": [
+          "pending",
+          "waiting",
+          "confirming",
+          "confirmed",
+          "sending",
+          "partially_paid",
+          "finished",
+          "failed",
+          "refunded",
+          "expired"
+        ],
+        "description": "NowPayments payment statuses plus our own `pending` (invoice created, no payment started yet). See https://documenter.getpostman.com/view/7907941/2s93JusNJt#payment-statuses"
+      },
+      "SubscribeBody": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "const": "pro"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "monthly",
+              "yearly"
+            ],
+            "description": "Billing period."
+          },
+          "duration": {
+            "type": "number",
+            "description": "Number of months or years, 1 to 5."
+          }
+        },
+        "required": [
+          "plan",
+          "type",
+          "duration"
+        ],
+        "additionalProperties": false
+      },
+      "SubscribeResponse": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "$ref": "#/components/schemas/Subscription"
+          },
+          "invoice": {
+            "type": "object",
+            "properties": {
+              "provider": {
+                "type": "string",
+                "const": "nowpayments"
+              },
+              "id": {
+                "type": "string"
+              },
+              "url": {
+                "type": "string"
+              },
+              "status": {
+                "$ref": "#/components/schemas/InvoiceStatus"
+              },
+              "updatedAt": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "provider",
+              "id",
+              "status"
+            ],
+            "additionalProperties": false,
+            "description": "Hosted invoice to redirect the user to."
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subscription",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "SubscriptionStatusResponse": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Subscription"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Latest active subscription. May be expired, check `expired`."
+          },
+          "pending": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Subscription"
+            },
+            "description": "Pending (unpaid) subscriptions with their invoices, newest first."
+          }
+        },
+        "required": [
+          "subscription",
+          "pending"
+        ],
+        "additionalProperties": false
+      },
+      "CancelSubscriptionBody": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "type": "string",
+            "description": "`publicId` of a pending subscription."
+          }
+        },
+        "required": [
+          "subscription"
+        ],
+        "additionalProperties": false
+      },
+      "CancelSubscriptionResponse": {
+        "type": "object",
+        "properties": {
+          "subscription": {
+            "$ref": "#/components/schemas/Subscription"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "subscription",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "Clip": {
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "url",
+              "html",
+              "image"
+            ]
+          },
+          "folder": {
+            "type": "string",
+            "description": "Slug of the folder the clip is in."
+          },
+          "context": {
+            "type": "string",
+            "description": "The clip content. Ciphertext when `encrypted` is true."
+          },
+          "locked": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "favorite": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "encrypted": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "updatedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "publicId",
+          "type",
+          "folder",
+          "context"
+        ],
+        "additionalProperties": false,
+        "description": "Public view of a clip."
+      },
+      "PaginatedClips": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "number"
+          },
+          "perPage": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          },
+          "lastPage": {
+            "type": "number"
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Clip"
+            }
+          }
+        },
+        "required": [
+          "page",
+          "perPage",
+          "total",
+          "lastPage",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "SearchClipsResponse": {
+        "type": "object",
+        "properties": {
+          "clips": {
+            "$ref": "#/components/schemas/PaginatedClips"
+          },
+          "query": {
+            "type": "string",
+            "description": "The trimmed search query that was used."
+          }
+        },
+        "required": [
+          "clips",
+          "query"
+        ],
+        "additionalProperties": false
+      },
+      "TransferClipsBody": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "`publicId`s of the clips to copy or move, 1 to 100."
+          },
+          "folder": {
+            "type": "string",
+            "description": "Target folder name or slug. Must not be an encrypted folder."
+          }
+        },
+        "required": [
+          "ids",
+          "folder"
+        ],
+        "additionalProperties": false
+      },
+      "TransferSkipReason": {
+        "type": "string",
+        "enum": [
+          "not_found",
+          "encrypted",
+          "same_folder"
+        ]
+      },
+      "TransferSkipped": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "reason": {
+            "$ref": "#/components/schemas/TransferSkipReason"
+          }
+        },
+        "required": [
+          "id",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "MoveClipsResponse": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string",
+            "description": "Slug of the target folder."
+          },
+          "moved": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Clips moved."
+          },
+          "merged": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Clips that already existed in the target: the existing clip was touched and the source deleted."
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransferSkipped"
+            }
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder",
+          "moved",
+          "merged",
+          "skipped",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "CopyClipsResponse": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string",
+            "description": "Slug of the target folder."
+          },
+          "copied": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "copyId": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "copyId"
+              ],
+              "additionalProperties": false
+            },
+            "description": "Clips copied, with the `publicId` of each new copy."
+          },
+          "merged": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Clips that already existed in the target: the existing clip was touched."
+          },
+          "skipped": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TransferSkipped"
+            }
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folder",
+          "copied",
+          "merged",
+          "skipped",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "AuthUser": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          },
+          "publicId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "joinedAt": {
+            "type": "string"
+          },
+          "plan": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "free",
+              "pro",
+              null
+            ]
+          }
+        },
+        "required": [
+          "username",
+          "publicId",
+          "joinedAt"
+        ],
+        "additionalProperties": false,
+        "description": "Public view of the authenticated user."
+      },
+      "PingResponse": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AuthUser"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "subscription": {
+            "$ref": "#/components/schemas/Subscription",
+            "description": "Latest active subscription, if any."
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "additionalProperties": false
+      },
+      "LoginBody": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "3 to 250 alphanumeric characters."
+          },
+          "password": {
+            "type": "string",
+            "description": "6 to 500 characters."
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ],
+        "additionalProperties": false
+      },
+      "LoginResponse": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "description": "JWT to send in the `oc_token` header."
+          },
+          "plan": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "free",
+              "pro",
+              null
+            ]
+          }
+        },
+        "required": [
+          "token",
+          "plan"
+        ],
+        "additionalProperties": false
+      },
+      "SignupBody": {
+        "$ref": "#/components/schemas/LoginBody"
+      },
+      "CheckUsernameBody": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "username"
+        ],
+        "additionalProperties": false
+      },
+      "CheckUsernameResponse": {
+        "type": "object",
+        "properties": {
+          "exists": {
+            "type": "boolean",
+            "description": "Whether the username is already taken."
+          }
+        },
+        "required": [
+          "exists"
+        ],
+        "additionalProperties": false
+      },
+      "SetPlanBody": {
+        "type": "object",
+        "properties": {
+          "plan": {
+            "type": "string",
+            "enum": [
+              "free",
+              "pro"
+            ],
+            "description": "Choosing `pro` for the first time starts a 7 day trial."
+          }
+        },
+        "required": [
+          "plan"
+        ],
+        "additionalProperties": false
+      },
+      "Folder": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "contents": {
+            "type": "number",
+            "description": "Number of clips in the folder. Only present in the folder list."
+          },
+          "visibility": {
+            "type": "string",
+            "enum": [
+              "public",
+              "private",
+              "encrypted"
+            ]
+          },
+          "hasPassword": {
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
+          "publicPaste": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "date": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "date"
+            ],
+            "additionalProperties": false,
+            "description": "Present when public paste is enabled."
+          }
+        },
+        "required": [
+          "name",
+          "slug",
+          "visibility"
+        ],
+        "additionalProperties": false,
+        "description": "Public view of a folder."
+      },
+      "CreateFolderBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Folder name, must be unique per user. The slug is derived from it."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "FolderPasswordBody": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "MD5 hash (32 hex characters) of the password chosen by the user."
+          }
+        },
+        "required": [
+          "password"
+        ],
+        "additionalProperties": false
+      },
+      "CheckFolderPasswordResponse": {
+        "type": "object",
+        "properties": {
+          "match": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "match"
+        ],
+        "additionalProperties": false
+      },
+      "PublicFolderResponse": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "$ref": "#/components/schemas/Folder"
+          }
+        },
+        "required": [
+          "folder"
+        ],
+        "additionalProperties": false
+      },
+      "PasteBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          },
+          "folder": {
+            "type": "string",
+            "description": "Target folder name or slug. Defaults to `clipboard`."
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "PasteResponse": {
+        "type": "object",
+        "properties": {
+          "clip": {
+            "$ref": "#/components/schemas/Clip"
+          }
+        },
+        "required": [
+          "clip"
+        ],
+        "additionalProperties": false
+      },
+      "PublicPasteBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "content"
+        ],
+        "additionalProperties": false
+      },
+      "PublicPasteResponse": {
+        "type": "object",
+        "properties": {
+          "clip": {
+            "$ref": "#/components/schemas/Clip"
+          },
+          "message": {
+            "type": "string",
+            "description": "Present when a new clip was created."
+          },
+          "info": {
+            "type": "string",
+            "description": "Present when identical content already existed and was only touched."
+          }
+        },
+        "required": [
+          "clip"
+        ],
+        "additionalProperties": false
+      },
+      "FindClipsBody": {
+        "type": "object",
+        "properties": {
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "`publicId`s of clips that were created through public paste."
+          }
+        },
+        "required": [
+          "ids"
+        ],
+        "additionalProperties": false
+      },
+      "FindClipsResponse": {
+        "type": "object",
+        "properties": {
+          "clips": {
+            "$ref": "#/components/schemas/PaginatedClips"
+          }
+        },
+        "required": [
+          "clips"
+        ],
+        "additionalProperties": false
+      },
+      "ClipsListResponse": {
+        "type": "object",
+        "properties": {
+          "clips": {
+            "$ref": "#/components/schemas/PaginatedClips"
+          },
+          "info": {
+            "type": "string",
+            "description": "Warning, e.g. the encrypted folder has no password set yet."
+          }
+        },
+        "required": [
+          "clips"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateClipBody": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "content": {
+            "type": "string"
+          }
+        },
+        "additionalProperties": false
+      },
+      "DeleteClipBody": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "Required only for encrypted clips: MD5 hash of the folder password."
+          }
+        },
+        "additionalProperties": false
+      },
+      "UploadImageResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string"
+          },
+          "content": {
+            "type": "object",
+            "description": "Raw upload result."
+          }
+        },
+        "required": [
+          "message",
+          "content"
+        ],
+        "additionalProperties": false
+      }
+    }
+  },
+  "paths": {
+    "/client/v1/account/subscribe": {
+      "post": {
+        "tags": [
+          "Subscription"
+        ],
+        "summary": "Create a Pro subscription invoice",
+        "description": "Creates a pending subscription and a NowPayments hosted invoice for it.\nRedirect the user to `invoice.url` to pay. The subscription activates\nthrough the payment webhook, usually a few minutes after payment.\n\nIf the user already has a pending subscription with the same plan, type\nand duration, its existing invoice is returned instead of creating a new one.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubscribeBody"
+              },
+              "example": {
+                "plan": "pro",
+                "type": "yearly",
+                "duration": 1
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Invoice created or reused.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscribeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `oc_token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "NowPayments could not create the invoice.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/account/subscription": {
+      "get": {
+        "tags": [
+          "Subscription"
+        ],
+        "summary": "Current subscription status",
+        "description": "Returns the latest active subscription (which may already be expired,\ncheck `expired`) and every pending subscription with its invoice, so the\nclient can offer \"continue payment\" or \"cancel\".\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Subscription state.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SubscriptionStatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `oc_token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/account/subscription/cancel": {
+      "post": {
+        "tags": [
+          "Subscription"
+        ],
+        "summary": "Cancel a pending subscription",
+        "description": "Cancels a pending, unpaid subscription. Paid or active subscriptions cannot\nbe cancelled here. The NowPayments invoice itself cannot be voided; if it is\npaid later anyway, the subscription is activated.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelSubscriptionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Subscription cancelled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, or the subscription is not pending.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such subscription for this user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/ping": {
+      "get": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Current user and subscription",
+        "description": "Returns the authenticated user's public profile and their latest active subscription.",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authenticated user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PingResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `oc_token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Login",
+        "description": "Returns a JWT. Send it as the `oc_token` header on authenticated requests.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginBody"
+              },
+              "example": {
+                "username": "alice",
+                "password": "secret123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Logged in.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or unknown username.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Wrong password.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/auth/signup": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Sign up",
+        "description": "Creates an account with the default `Clipboard` and `Encrypted` folders.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SignupBody"
+              },
+              "example": {
+                "username": "alice",
+                "password": "secret123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or username already taken.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/auth/check-username": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Check whether a username is taken",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckUsernameBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lookup result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckUsernameResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid username.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/folders": {
+      "get": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "List folders",
+        "description": "All folders of the user with their clip counts.",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Folders.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Folder"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `oc_token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Create folder",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateFolderBody"
+              },
+              "example": {
+                "name": "Work"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Created folder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Folder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or a folder with that name already exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `oc_token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/folder/{folder}/set-password": {
+      "post": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Set folder password",
+        "description": "Stores the password used to encrypt clips in this folder. The client must send the\nMD5 hash of the password, never the plain text. Folders with a password cannot be deleted.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folder",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Folder slug."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FolderPasswordBody"
+              },
+              "example": {
+                "password": "5f4dcc3b5aa765d61d8327deb882cf99"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Folder not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/folder/{folder}/check-password": {
+      "post": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Check folder password",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folder",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Folder slug."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FolderPasswordBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Comparison result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckFolderPasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or the folder has no password.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Folder not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/folder/{folder}/enable-public-paste": {
+      "post": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Enable public paste",
+        "description": "Generates a public paste id so anyone can paste into this folder via `/client/v1/clips/paste/{pasteId}`.",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folder",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Folder slug."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Already enabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Folder not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/folder/{folder}/disable-public-paste": {
+      "post": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Disable public paste",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folder",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Folder slug."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not enabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Folder not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/folder/{folder}": {
+      "delete": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Delete folder",
+        "description": "Deletes the folder and every clip in it. The default `clipboard` folder and folders with a password cannot be deleted.",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folder",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Folder slug."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Folder is protected or is the default folder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Folder not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/folders/public/{pasteId}": {
+      "get": {
+        "tags": [
+          "Public"
+        ],
+        "summary": "Folder by public paste id",
+        "description": "No authentication required. Resolves a public paste id to its folder.",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pasteId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Folder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicFolderResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Paste folder not found or has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/clips/find": {
+      "post": {
+        "tags": [
+          "Public"
+        ],
+        "summary": "Find public-paste clips by id",
+        "description": "No authentication required. Returns clips that were created through public paste,\nlooked up by their ids. Meant for the paster to see the clips they submitted.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FindClipsBody"
+              }
+            }
+          }
+        },
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching clips, newest first. Empty page when `ids` is empty.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FindClipsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/clips/paste": {
+      "post": {
+        "tags": [
+          "Clips"
+        ],
+        "summary": "Paste a clip",
+        "description": "Creates a clip in a folder. In non-encrypted folders identical content is de-duplicated:\nthe existing clip's `updatedAt` is touched instead of creating a new one.\nClips pasted into an encrypted folder are stored as-is and flagged `encrypted`, so the\nclient must encrypt the content before sending it.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasteBody"
+              },
+              "example": {
+                "title": "Groceries",
+                "content": "milk, eggs",
+                "folder": "clipboard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The created or touched clip.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PasteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or unknown folder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `oc_token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/clips/paste/{pasteId}": {
+      "post": {
+        "tags": [
+          "Public"
+        ],
+        "summary": "Paste into a shared folder",
+        "description": "No authentication required. Pastes into the folder that owns `pasteId`\n(see enable public paste). Identical content is de-duplicated.\n",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pasteId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PublicPasteBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The created or existing clip.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicPasteResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, or paste folder not found / expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/clips/upload": {
+      "post": {
+        "tags": [
+          "Clips"
+        ],
+        "summary": "Upload an image clip",
+        "description": "Multipart upload of an image (png, jpg, jpeg, gif, bmp, webp), max 5 MB. Work in progress.",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "content"
+                ],
+                "properties": {
+                  "content": {
+                    "type": "string",
+                    "format": "binary"
+                  },
+                  "title": {
+                    "type": "string"
+                  },
+                  "folder": {
+                    "type": "string",
+                    "default": "clipboard"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Uploaded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadImageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file or folder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `oc_token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/clips": {
+      "get": {
+        "tags": [
+          "Clips"
+        ],
+        "summary": "List clips in the default folder",
+        "description": "Same as `/client/v1/clips/{folder}` with `folder` = `clipboard`.",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Clips, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClipsListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `oc_token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/clips/{folder}": {
+      "get": {
+        "tags": [
+          "Clips"
+        ],
+        "summary": "List clips in a folder",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folder",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Folder slug."
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Clips, newest first. `info` warns when an encrypted folder has no password yet.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClipsListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `oc_token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Folder not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/clips/copy": {
+      "post": {
+        "tags": [
+          "Clips"
+        ],
+        "summary": "Copy clips into another folder (Pro)",
+        "description": "Copies up to 100 clips into a folder. Requires an active Pro subscription.\n\n- The target folder must belong to the user and must not be encrypted.\n- Clips in encrypted folders are skipped (`encrypted`).\n- Clips already in the target folder are skipped (`same_folder`).\n- If the target already holds a clip with identical content it is merged:\n  the existing clip is touched instead of creating a duplicate.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferClipsBody"
+              },
+              "example": {
+                "ids": [
+                  "AMtJUhUOdQRACyd7wyiq3"
+                ],
+                "folder": "work"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-clip results. Skipped ids do not fail the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CopyClipsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, unknown folder, or encrypted target folder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a Pro user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/clips/move": {
+      "post": {
+        "tags": [
+          "Clips"
+        ],
+        "summary": "Move clips into another folder",
+        "description": "Moves up to 100 clips into a folder.\n\n- The target folder must belong to the user and must not be encrypted.\n- Clips in encrypted folders are skipped (`encrypted`).\n- Clips already in the target folder are skipped (`same_folder`).\n- If the target already holds a clip with identical content it is merged:\n  the existing clip is touched and the source clip is deleted.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TransferClipsBody"
+              },
+              "example": {
+                "ids": [
+                  "AMtJUhUOdQRACyd7wyiq3",
+                  "oipWNu2PQkyhVq9ztZ2tV"
+                ],
+                "folder": "work"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-clip results. Skipped ids do not fail the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MoveClipsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, unknown folder, or encrypted target folder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/clips/search": {
+      "get": {
+        "tags": [
+          "Clips"
+        ],
+        "summary": "Search clips",
+        "description": "Case-insensitive substring search across the user's clips.\n`title` is searched on every clip; `content` only on clips that are not\nencrypted, because encrypted content is ciphertext.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "q",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 200
+            },
+            "description": "Text to search for. Treated literally, not as a regex."
+          },
+          {
+            "in": "query",
+            "name": "folder",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Restrict results to this folder slug."
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 30
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching clips, newest first.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchClipsResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or too long `q`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/clip/{clip}/update": {
+      "post": {
+        "tags": [
+          "Clips"
+        ],
+        "summary": "Update a clip (Pro)",
+        "description": "Only `title` and `content` can be changed. Requires an active Pro subscription.",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clip",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Clip publicId."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateClipBody"
+              },
+              "example": {
+                "title": "New title"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated, or `info` when nothing changed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a Pro user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Clip not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/clip/{clip}/delete": {
+      "post": {
+        "tags": [
+          "Clips"
+        ],
+        "summary": "Delete a clip",
+        "description": "Encrypted clips require the MD5 hash of their folder password in the body.",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "clip",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Clip publicId."
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteClipBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Wrong folder password.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Clip not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/account/set-plan": {
+      "post": {
+        "tags": [
+          "Account"
+        ],
+        "summary": "Set plan",
+        "description": "Sets the user's plan. Choosing `pro` creates a 7 day trial subscription.\nPaid Pro time is bought through `/client/v1/account/subscribe`.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPlanBody"
+              },
+              "example": {
+                "plan": "pro"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Plan updated.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or plan already set.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `oc_token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

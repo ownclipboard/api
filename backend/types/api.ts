@@ -1,0 +1,274 @@
+/**
+ * Public API types.
+ *
+ * Every exported type in this file is converted to a JSON schema by
+ * `npm run docs:build` and exposed under `components.schemas` in the
+ * OpenAPI document, so controller docs can `$ref` them and the client
+ * can generate matching TypeScript types with `openapi-typescript`.
+ *
+ * Only put request/response shapes here, never raw model types
+ * (they contain private fields such as passwords and ObjectIds).
+ */
+import type { SubStat as SubscriptionStat } from "../models/Subscription";
+
+/** Standard error body. */
+export interface ErrorResponse {
+    /** Human readable error message. */
+    error: string;
+    /** Name of the request field that failed validation, when applicable. */
+    field?: string;
+}
+
+/** Simple message body. */
+export interface MessageResponse {
+    message: string;
+}
+
+// ---------------------------------------------------------------------------
+// Subscriptions
+// ---------------------------------------------------------------------------
+
+/** Public view of a subscription. */
+export type Subscription = SubscriptionStat;
+
+export interface SubscribeBody {
+    plan: "pro";
+    /** Billing period. */
+    type: "monthly" | "yearly";
+    /** Number of months or years, 1 to 5. */
+    duration: number;
+}
+
+export interface SubscribeResponse {
+    subscription: Subscription;
+    /** Hosted invoice to redirect the user to. */
+    invoice?: Subscription["invoice"];
+    message: string;
+}
+
+export interface SubscriptionStatusResponse {
+    /** Latest active subscription. May be expired, check `expired`. */
+    subscription: Subscription | null;
+    /** Pending (unpaid) subscriptions with their invoices, newest first. */
+    pending: Subscription[];
+}
+
+export interface CancelSubscriptionBody {
+    /** `publicId` of a pending subscription. */
+    subscription: string;
+}
+
+export interface CancelSubscriptionResponse {
+    subscription: Subscription;
+    message: string;
+}
+
+// ---------------------------------------------------------------------------
+// Clips
+// ---------------------------------------------------------------------------
+
+/** Public view of a clip. */
+export interface Clip {
+    publicId: string;
+    title?: string;
+    type: "text" | "url" | "html" | "image";
+    /** Slug of the folder the clip is in. */
+    folder: string;
+    /** The clip content. Ciphertext when `encrypted` is true. */
+    context: string;
+    locked?: boolean | null;
+    favorite?: boolean | null;
+    encrypted?: boolean | null;
+    updatedAt?: string;
+}
+
+export interface PaginatedClips {
+    page: number;
+    perPage: number;
+    total: number;
+    lastPage: number;
+    data: Clip[];
+}
+
+export interface SearchClipsResponse {
+    clips: PaginatedClips;
+    /** The trimmed search query that was used. */
+    query: string;
+}
+
+export interface TransferClipsBody {
+    /** `publicId`s of the clips to copy or move, 1 to 100. */
+    ids: string[];
+    /** Target folder name or slug. Must not be an encrypted folder. */
+    folder: string;
+}
+
+export type TransferSkipReason = "not_found" | "encrypted" | "same_folder";
+
+export interface TransferSkipped {
+    id: string;
+    reason: TransferSkipReason;
+}
+
+export interface MoveClipsResponse {
+    /** Slug of the target folder. */
+    folder: string;
+    /** Clips moved. */
+    moved: { id: string }[];
+    /** Clips that already existed in the target: the existing clip was touched and the source deleted. */
+    merged: string[];
+    skipped: TransferSkipped[];
+    message: string;
+}
+
+export interface CopyClipsResponse {
+    /** Slug of the target folder. */
+    folder: string;
+    /** Clips copied, with the `publicId` of each new copy. */
+    copied: { id: string; copyId: string }[];
+    /** Clips that already existed in the target: the existing clip was touched. */
+    merged: string[];
+    skipped: TransferSkipped[];
+    message: string;
+}
+
+// ---------------------------------------------------------------------------
+// Auth & account
+// ---------------------------------------------------------------------------
+
+/** Public view of the authenticated user. */
+export interface AuthUser {
+    username: string;
+    publicId: string;
+    email?: string;
+    joinedAt: string;
+    plan?: "free" | "pro" | null;
+}
+
+export interface PingResponse {
+    user: AuthUser | null;
+    /** Latest active subscription, if any. */
+    subscription?: Subscription;
+}
+
+export interface LoginBody {
+    /** 3 to 250 alphanumeric characters. */
+    username: string;
+    /** 6 to 500 characters. */
+    password: string;
+}
+
+export interface LoginResponse {
+    /** JWT to send in the `oc_token` header. */
+    token: string;
+    plan: "free" | "pro" | null;
+}
+
+export type SignupBody = LoginBody;
+
+export interface CheckUsernameBody {
+    username: string;
+}
+
+export interface CheckUsernameResponse {
+    /** Whether the username is already taken. */
+    exists: boolean;
+}
+
+export interface SetPlanBody {
+    /** Choosing `pro` for the first time starts a 7 day trial. */
+    plan: "free" | "pro";
+}
+
+// ---------------------------------------------------------------------------
+// Folders
+// ---------------------------------------------------------------------------
+
+/** Public view of a folder. */
+export interface Folder {
+    name: string;
+    slug: string;
+    /** Number of clips in the folder. Only present in the folder list. */
+    contents?: number;
+    visibility: "public" | "private" | "encrypted";
+    hasPassword?: boolean | null;
+    /** Present when public paste is enabled. */
+    publicPaste?: { id: string; date: string };
+}
+
+export interface CreateFolderBody {
+    /** Folder name, must be unique per user. The slug is derived from it. */
+    name: string;
+}
+
+export interface FolderPasswordBody {
+    /** MD5 hash (32 hex characters) of the password chosen by the user. */
+    password: string;
+}
+
+export interface CheckFolderPasswordResponse {
+    match: boolean;
+}
+
+export interface PublicFolderResponse {
+    folder: Folder;
+}
+
+// ---------------------------------------------------------------------------
+// Clips (paste, list, find, update, delete)
+// ---------------------------------------------------------------------------
+
+export interface PasteBody {
+    title?: string;
+    content: string;
+    /** Target folder name or slug. Defaults to `clipboard`. */
+    folder?: string;
+}
+
+export interface PasteResponse {
+    clip: Clip;
+}
+
+export interface PublicPasteBody {
+    title?: string;
+    content: string;
+}
+
+export interface PublicPasteResponse {
+    clip: Clip;
+    /** Present when a new clip was created. */
+    message?: string;
+    /** Present when identical content already existed and was only touched. */
+    info?: string;
+}
+
+export interface FindClipsBody {
+    /** `publicId`s of clips that were created through public paste. */
+    ids: string[];
+}
+
+export interface FindClipsResponse {
+    clips: PaginatedClips;
+}
+
+export interface ClipsListResponse {
+    clips: PaginatedClips;
+    /** Warning, e.g. the encrypted folder has no password set yet. */
+    info?: string;
+}
+
+export interface UpdateClipBody {
+    title?: string;
+    content?: string;
+}
+
+export interface DeleteClipBody {
+    /** Required only for encrypted clips: MD5 hash of the folder password. */
+    password?: string;
+}
+
+export interface UploadImageResponse {
+    message: string;
+    /** Raw upload result. */
+    content: Record<string, any>;
+}
