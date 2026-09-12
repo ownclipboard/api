@@ -20,6 +20,54 @@ export = <Controller.Object<{ folder: Folder }>>{
     },
 
     /**
+     * @openapi
+     * /client/v1/folders:
+     *   get:
+     *     tags: [Folders]
+     *     summary: List folders
+     *     description: All folders of the user with their clip counts.
+     *     security: [{ ocToken: [] }]
+     *     responses:
+     *       200:
+     *         description: Folders.
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items: { $ref: "#/components/schemas/Folder" }
+     *       401:
+     *         description: Missing or invalid `oc_token`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *   post:
+     *     tags: [Folders]
+     *     summary: Create folder
+     *     security: [{ ocToken: [] }]
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/CreateFolderBody" }
+     *           example: { name: Work }
+     *     responses:
+     *       200:
+     *         description: Created folder.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/Folder" }
+     *       400:
+     *         description: Validation error or a folder with that name already exists.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       401:
+     *         description: Missing or invalid `oc_token`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Get all folders
      * @param http - Current Http Instance
      */
@@ -66,6 +114,41 @@ export = <Controller.Object<{ folder: Folder }>>{
     },
 
     /**
+     * @openapi
+     * /client/v1/folder/{folder}/set-password:
+     *   post:
+     *     tags: [Folders]
+     *     summary: Set folder password
+     *     description: |
+     *       Stores the password used to encrypt clips in this folder. The client must send the
+     *       MD5 hash of the password, never the plain text. Folders with a password cannot be deleted.
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: folder, required: true, schema: { type: string }, description: Folder slug. }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/FolderPasswordBody" }
+     *           example: { password: 5f4dcc3b5aa765d61d8327deb882cf99 }
+     *     responses:
+     *       200:
+     *         description: Password set.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MessageResponse" }
+     *       400:
+     *         description: Validation error.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Folder not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Set password for a folder.
      * @param http
      * @param folder
@@ -85,6 +168,37 @@ export = <Controller.Object<{ folder: Folder }>>{
     },
 
     /**
+     * @openapi
+     * /client/v1/folder/{folder}/check-password:
+     *   post:
+     *     tags: [Folders]
+     *     summary: Check folder password
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: folder, required: true, schema: { type: string }, description: Folder slug. }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/FolderPasswordBody" }
+     *     responses:
+     *       200:
+     *         description: Comparison result.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/CheckFolderPasswordResponse" }
+     *       400:
+     *         description: Validation error or the folder has no password.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Folder not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Check if password is correct.
      * @param http
      * @param folder
@@ -99,6 +213,33 @@ export = <Controller.Object<{ folder: Folder }>>{
         return { match: folder.matchPassword(password) };
     },
 
+    /**
+     * @openapi
+     * /client/v1/folder/{folder}/enable-public-paste:
+     *   post:
+     *     tags: [Folders]
+     *     summary: Enable public paste
+     *     description: Generates a public paste id so anyone can paste into this folder via `/client/v1/clips/paste/{pasteId}`.
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: folder, required: true, schema: { type: string }, description: Folder slug. }
+     *     responses:
+     *       200:
+     *         description: Enabled.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MessageResponse" }
+     *       400:
+     *         description: Already enabled.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Folder not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
     /**
      * Enable public paste.
      * @param http
@@ -119,6 +260,32 @@ export = <Controller.Object<{ folder: Folder }>>{
     },
 
     /**
+     * @openapi
+     * /client/v1/folder/{folder}/disable-public-paste:
+     *   post:
+     *     tags: [Folders]
+     *     summary: Disable public paste
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: folder, required: true, schema: { type: string }, description: Folder slug. }
+     *     responses:
+     *       200:
+     *         description: Disabled.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MessageResponse" }
+     *       400:
+     *         description: Not enabled.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Folder not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Disable public paste.
      * @param http
      * @param folder
@@ -132,6 +299,33 @@ export = <Controller.Object<{ folder: Folder }>>{
         return { message: "Public paste disabled." };
     },
 
+    /**
+     * @openapi
+     * /client/v1/folder/{folder}:
+     *   delete:
+     *     tags: [Folders]
+     *     summary: Delete folder
+     *     description: Deletes the folder and every clip in it. The default `clipboard` folder and folders with a password cannot be deleted.
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: folder, required: true, schema: { type: string }, description: Folder slug. }
+     *     responses:
+     *       200:
+     *         description: Deleted.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MessageResponse" }
+     *       400:
+     *         description: Folder is protected or is the default folder.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Folder not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
     /**
      * Delete a folder.
      */
@@ -154,6 +348,27 @@ export = <Controller.Object<{ folder: Folder }>>{
         return { message: "Folder deleted successfully." };
     },
 
+    /**
+     * @openapi
+     * /client/v1/folders/public/{pasteId}:
+     *   get:
+     *     tags: [Public]
+     *     summary: Folder by public paste id
+     *     description: No authentication required. Resolves a public paste id to its folder.
+     *     parameters:
+     *       - { in: path, name: pasteId, required: true, schema: { type: string } }
+     *     responses:
+     *       200:
+     *         description: Folder.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/PublicFolderResponse" }
+     *       400:
+     *         description: Paste folder not found or has expired.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
     async pasteId(http) {
         const folder = http.loadedParam<Folder>("folder");
         return { folder: folder.getPublicFields() };

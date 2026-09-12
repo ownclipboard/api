@@ -40,6 +40,36 @@ export = <Controller.Object>{
     },
 
     /**
+     * @openapi
+     * /client/v1/auth/login:
+     *   post:
+     *     tags: [Auth]
+     *     summary: Login
+     *     description: Returns a JWT. Send it as the `oc_token` header on authenticated requests.
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/LoginBody" }
+     *           example: { username: alice, password: secret123 }
+     *     responses:
+     *       200:
+     *         description: Logged in.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/LoginResponse" }
+     *       400:
+     *         description: Validation error or unknown username.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       401:
+     *         description: Wrong password.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Login with username & password.
      * @param http - Current Http Instance
      * @param boot - Boot return data.
@@ -83,6 +113,31 @@ export = <Controller.Object>{
     },
 
     /**
+     * @openapi
+     * /client/v1/auth/signup:
+     *   post:
+     *     tags: [Auth]
+     *     summary: Sign up
+     *     description: Creates an account with the default `Clipboard` and `Encrypted` folders.
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/SignupBody" }
+     *           example: { username: alice, password: secret123 }
+     *     responses:
+     *       200:
+     *         description: Account created.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MessageResponse" }
+     *       400:
+     *         description: Validation error or username already taken.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Register with username & password.
      */
     async signup(http) {
@@ -117,6 +172,29 @@ export = <Controller.Object>{
         return { message: "Apikey is valid!" };
     },
 
+    /**
+     * @openapi
+     * /client/v1/auth/check-username:
+     *   post:
+     *     tags: [Auth]
+     *     summary: Check whether a username is taken
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/CheckUsernameBody" }
+     *     responses:
+     *       200:
+     *         description: Lookup result.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/CheckUsernameResponse" }
+     *       400:
+     *         description: Invalid username.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
     /**
      * Check validity of username.
      * @param http

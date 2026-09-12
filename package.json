@@ -9,10 +9,11 @@
   "private": false,
   "scripts": {
     "start": "npm run build && node build/ownclipboard.js",
-    "build": "npx xjs @stack tsc",
+    "build": "npm run docs:build && npx xjs @stack tsc",
     "ts-dev": "npx ts-node-dev --respawn ownclipboard.ts",
     "ts:dev": "npx tsx watch ownclipboard.ts",
-    "js-dev": "npx nodemon build/ownclipboard.js"
+    "js-dev": "npx nodemon build/ownclipboard.js",
+    "docs:build": "npx tsx scripts/build-docs.ts"
   },
   "dependencies": {
     "@xpresser/abolish": "^2.3.1",
@@ -27,6 +28,8 @@
     "nanoid": "^3.3.4",
     "readable-timeout": "^1.0.0",
     "slugify": "^1.6.6",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1",
     "tsx": "^4.19.2",
     "xpress-mongo": "^3.0.4",
     "xpresser": "^0.32.8"
@@ -34,8 +37,11 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.13.0",
+    "@types/swagger-jsdoc": "^6.0.4",
+    "@types/swagger-ui-express": "^4.1.8",
     "nodemon": "^3.1.9",
     "prettier": "^3.4.2",
+    "ts-json-schema-generator": "^2.9.0",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.7.3",
     "xjs-cli": "^1.4.2"

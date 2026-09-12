@@ -20,6 +20,39 @@ export = <Controller.Object>{
 
 
     /**
+     * @openapi
+     * /client/v1/account/set-plan:
+     *   post:
+     *     tags: [Account]
+     *     summary: Set plan
+     *     description: |
+     *       Sets the user's plan. Choosing `pro` creates a 7 day trial subscription.
+     *       Paid Pro time is bought through `/client/v1/account/subscribe`.
+     *     security: [{ ocToken: [] }]
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/SetPlanBody" }
+     *           example: { plan: pro }
+     *     responses:
+     *       200:
+     *         description: Plan updated.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MessageResponse" }
+     *       400:
+     *         description: Validation error or plan already set.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       401:
+     *         description: Missing or invalid `oc_token`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Set Plan
      * @param http - Current Http Instance
      */

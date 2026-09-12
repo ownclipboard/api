@@ -17,6 +17,26 @@ export = <Controller.Object>{
     },
 
     /**
+     * @openapi
+     * /client/v1/ping:
+     *   get:
+     *     tags: [Account]
+     *     summary: Current user and subscription
+     *     description: Returns the authenticated user's public profile and their latest active subscription.
+     *     security: [{ ocToken: [] }]
+     *     responses:
+     *       200:
+     *         description: Authenticated user.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/PingResponse" }
+     *       401:
+     *         description: Missing or invalid `oc_token`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Ping
      * @param http - Current Http Instance
      */

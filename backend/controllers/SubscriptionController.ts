@@ -26,6 +26,48 @@ export = <Controller.Object>{
     e: (http: Http, error: string) => http.status(401).json({ error }),
 
     /**
+     * @openapi
+     * /client/v1/account/subscribe:
+     *   post:
+     *     tags: [Subscription]
+     *     summary: Create a Pro subscription invoice
+     *     description: |
+     *       Creates a pending subscription and a NowPayments hosted invoice for it.
+     *       Redirect the user to `invoice.url` to pay. The subscription activates
+     *       through the payment webhook, usually a few minutes after payment.
+     *
+     *       If the user already has a pending subscription with the same plan, type
+     *       and duration, its existing invoice is returned instead of creating a new one.
+     *     security: [{ ocToken: [] }]
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/SubscribeBody" }
+     *           example: { plan: pro, type: yearly, duration: 1 }
+     *     responses:
+     *       200:
+     *         description: Invoice created or reused.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/SubscribeResponse" }
+     *       400:
+     *         description: Validation error.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       401:
+     *         description: Missing or invalid `oc_token`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       502:
+     *         description: NowPayments could not create the invoice.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Create a pending subscription and a NowPayments invoice for it.
      * Returns the invoice url the client should redirect the user to.
      *
@@ -94,6 +136,29 @@ export = <Controller.Object>{
     },
 
     /**
+     * @openapi
+     * /client/v1/account/subscription:
+     *   get:
+     *     tags: [Subscription]
+     *     summary: Current subscription status
+     *     description: |
+     *       Returns the latest active subscription (which may already be expired,
+     *       check `expired`) and every pending subscription with its invoice, so the
+     *       client can offer "continue payment" or "cancel".
+     *     security: [{ ocToken: [] }]
+     *     responses:
+     *       200:
+     *         description: Subscription state.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/SubscriptionStatusResponse" }
+     *       401:
+     *         description: Missing or invalid `oc_token`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Current subscription status:
      *  - `subscription`: latest active subscription (may be expired)
      *  - `pending`: pending subscriptions with their invoice, newest first
@@ -117,6 +182,39 @@ export = <Controller.Object>{
         };
     },
 
+    /**
+     * @openapi
+     * /client/v1/account/subscription/cancel:
+     *   post:
+     *     tags: [Subscription]
+     *     summary: Cancel a pending subscription
+     *     description: |
+     *       Cancels a pending, unpaid subscription. Paid or active subscriptions cannot
+     *       be cancelled here. The NowPayments invoice itself cannot be voided; if it is
+     *       paid later anyway, the subscription is activated.
+     *     security: [{ ocToken: [] }]
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/CancelSubscriptionBody" }
+     *     responses:
+     *       200:
+     *         description: Subscription cancelled.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/CancelSubscriptionResponse" }
+     *       400:
+     *         description: Validation error, or the subscription is not pending.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: No such subscription for this user.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
     /**
      * Cancel a pending (unpaid) subscription.
      * Paid subscriptions cannot be cancelled here.

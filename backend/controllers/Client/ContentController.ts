@@ -141,6 +141,35 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
     },
 
     /**
+     * @openapi
+     * /client/v1/clips/find:
+     *   post:
+     *     tags: [Public]
+     *     summary: Find public-paste clips by id
+     *     description: |
+     *       No authentication required. Returns clips that were created through public paste,
+     *       looked up by their ids. Meant for the paster to see the clips they submitted.
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/FindClipsBody" }
+     *     parameters:
+     *       - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+     *       - { in: query, name: perPage, schema: { type: integer, minimum: 1, maximum: 1000, default: 30 } }
+     *     responses:
+     *       200:
+     *         description: Matching clips, newest first. Empty page when `ids` is empty.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/FindClipsResponse" }
+     *       400:
+     *         description: Validation error.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Find contents by publicId with public paste id
      * @param http
      */
@@ -168,6 +197,41 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         return { clips };
     },
 
+    /**
+     * @openapi
+     * /client/v1/clips/paste:
+     *   post:
+     *     tags: [Clips]
+     *     summary: Paste a clip
+     *     description: |
+     *       Creates a clip in a folder. In non-encrypted folders identical content is de-duplicated:
+     *       the existing clip's `updatedAt` is touched instead of creating a new one.
+     *       Clips pasted into an encrypted folder are stored as-is and flagged `encrypted`, so the
+     *       client must encrypt the content before sending it.
+     *     security: [{ ocToken: [] }]
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/PasteBody" }
+     *           example: { title: Groceries, content: 'milk, eggs', folder: clipboard }
+     *     responses:
+     *       200:
+     *         description: The created or touched clip.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/PasteResponse" }
+     *       400:
+     *         description: Validation error or unknown folder.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       401:
+     *         description: Missing or invalid `oc_token`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
     /**
      * Paste
      * @param http - Current Http Instance
@@ -218,6 +282,34 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         return { clip: content.getPublicFields() };
     },
 
+    /**
+     * @openapi
+     * /client/v1/clips/paste/{pasteId}:
+     *   post:
+     *     tags: [Public]
+     *     summary: Paste into a shared folder
+     *     description: |
+     *       No authentication required. Pastes into the folder that owns `pasteId`
+     *       (see enable public paste). Identical content is de-duplicated.
+     *     parameters:
+     *       - { in: path, name: pasteId, required: true, schema: { type: string } }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/PublicPasteBody" }
+     *     responses:
+     *       200:
+     *         description: The created or existing clip.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/PublicPasteResponse" }
+     *       400:
+     *         description: Validation error, or paste folder not found / expired.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
     async publicPaste(http) {
         const folder = http.loadedParam<Folder>("folder");
         type body = { title?: string; content: string };
@@ -264,6 +356,42 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         };
     },
 
+    /**
+     * @openapi
+     * /client/v1/clips/upload:
+     *   post:
+     *     tags: [Clips]
+     *     summary: Upload an image clip
+     *     description: Multipart upload of an image (png, jpg, jpeg, gif, bmp, webp), max 5 MB. Work in progress.
+     *     security: [{ ocToken: [] }]
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         multipart/form-data:
+     *           schema:
+     *             type: object
+     *             required: [content]
+     *             properties:
+     *               content: { type: string, format: binary }
+     *               title: { type: string }
+     *               folder: { type: string, default: clipboard }
+     *     responses:
+     *       200:
+     *         description: Uploaded.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/UploadImageResponse" }
+     *       400:
+     *         description: Invalid file or folder.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       401:
+     *         description: Missing or invalid `oc_token`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
     async upload(http) {
         // Get current user
         const authId = http.authUserId();
@@ -292,6 +420,54 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         return { message: "Image uploaded successfully!", content };
     },
 
+    /**
+     * @openapi
+     * /client/v1/clips:
+     *   get:
+     *     tags: [Clips]
+     *     summary: List clips in the default folder
+     *     description: Same as `/client/v1/clips/{folder}` with `folder` = `clipboard`.
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+     *       - { in: query, name: perPage, schema: { type: integer, minimum: 1, maximum: 1000, default: 30 } }
+     *     responses:
+     *       200:
+     *         description: Clips, newest first.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ClipsListResponse" }
+     *       401:
+     *         description: Missing or invalid `oc_token`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     * /client/v1/clips/{folder}:
+     *   get:
+     *     tags: [Clips]
+     *     summary: List clips in a folder
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: folder, required: true, schema: { type: string }, description: Folder slug. }
+     *       - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+     *       - { in: query, name: perPage, schema: { type: integer, minimum: 1, maximum: 1000, default: 30 } }
+     *     responses:
+     *       200:
+     *         description: Clips, newest first. `info` warns when an encrypted folder has no password yet.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ClipsListResponse" }
+     *       401:
+     *         description: Missing or invalid `oc_token`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Folder not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
     /**
      * Get all clips by folder
      * @param http
@@ -332,6 +508,44 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
     },
 
     /**
+     * @openapi
+     * /client/v1/clips/copy:
+     *   post:
+     *     tags: [Clips]
+     *     summary: Copy clips into another folder (Pro)
+     *     description: |
+     *       Copies up to 100 clips into a folder. Requires an active Pro subscription.
+     *
+     *       - The target folder must belong to the user and must not be encrypted.
+     *       - Clips in encrypted folders are skipped (`encrypted`).
+     *       - Clips already in the target folder are skipped (`same_folder`).
+     *       - If the target already holds a clip with identical content it is merged:
+     *         the existing clip is touched instead of creating a duplicate.
+     *     security: [{ ocToken: [] }]
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/TransferClipsBody" }
+     *           example: { ids: [AMtJUhUOdQRACyd7wyiq3], folder: work }
+     *     responses:
+     *       200:
+     *         description: Per-clip results. Skipped ids do not fail the request.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/CopyClipsResponse" }
+     *       400:
+     *         description: Validation error, unknown folder, or encrypted target folder.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       403:
+     *         description: Not a Pro user.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Copy clips into another folder. (Pro)
      * Body: { ids: string[], folder: string }
      */
@@ -340,6 +554,39 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
     },
 
     /**
+     * @openapi
+     * /client/v1/clips/move:
+     *   post:
+     *     tags: [Clips]
+     *     summary: Move clips into another folder
+     *     description: |
+     *       Moves up to 100 clips into a folder.
+     *
+     *       - The target folder must belong to the user and must not be encrypted.
+     *       - Clips in encrypted folders are skipped (`encrypted`).
+     *       - Clips already in the target folder are skipped (`same_folder`).
+     *       - If the target already holds a clip with identical content it is merged:
+     *         the existing clip is touched and the source clip is deleted.
+     *     security: [{ ocToken: [] }]
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/TransferClipsBody" }
+     *           example: { ids: [AMtJUhUOdQRACyd7wyiq3, oipWNu2PQkyhVq9ztZ2tV], folder: work }
+     *     responses:
+     *       200:
+     *         description: Per-clip results. Skipped ids do not fail the request.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MoveClipsResponse" }
+     *       400:
+     *         description: Validation error, unknown folder, or encrypted target folder.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Move clips into another folder.
      * Body: { ids: string[], folder: string }
      */
@@ -347,6 +594,45 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         return transferClips(http, authId, "move");
     },
 
+    /**
+     * @openapi
+     * /client/v1/clips/search:
+     *   get:
+     *     tags: [Clips]
+     *     summary: Search clips
+     *     description: |
+     *       Case-insensitive substring search across the user's clips.
+     *       `title` is searched on every clip; `content` only on clips that are not
+     *       encrypted, because encrypted content is ciphertext.
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - in: query
+     *         name: q
+     *         required: true
+     *         schema: { type: string, minLength: 1, maxLength: 200 }
+     *         description: Text to search for. Treated literally, not as a regex.
+     *       - in: query
+     *         name: folder
+     *         schema: { type: string }
+     *         description: Restrict results to this folder slug.
+     *       - in: query
+     *         name: page
+     *         schema: { type: integer, minimum: 1, default: 1 }
+     *       - in: query
+     *         name: perPage
+     *         schema: { type: integer, minimum: 1, maximum: 1000, default: 30 }
+     *     responses:
+     *       200:
+     *         description: Matching clips, newest first.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/SearchClipsResponse" }
+     *       400:
+     *         description: Missing or too long `q`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
     /**
      * Search clips.
      * Query: q (required), folder (optional), page, perPage
@@ -385,6 +671,44 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
     },
 
     /**
+     * @openapi
+     * /client/v1/clip/{clip}/update:
+     *   post:
+     *     tags: [Clips]
+     *     summary: Update a clip (Pro)
+     *     description: Only `title` and `content` can be changed. Requires an active Pro subscription.
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: clip, required: true, schema: { type: string }, description: Clip publicId. }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/UpdateClipBody" }
+     *           example: { title: New title }
+     *     responses:
+     *       200:
+     *         description: Updated, or `info` when nothing changed.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MessageResponse" }
+     *       400:
+     *         description: Validation error.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       403:
+     *         description: Not a Pro user.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Clip not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Update clip
      * @param http
      * @param authId
@@ -405,6 +729,38 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         return { message: "Clip updated successfully!" };
     },
 
+    /**
+     * @openapi
+     * /client/v1/clip/{clip}/delete:
+     *   post:
+     *     tags: [Clips]
+     *     summary: Delete a clip
+     *     description: Encrypted clips require the MD5 hash of their folder password in the body.
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: clip, required: true, schema: { type: string }, description: Clip publicId. }
+     *     requestBody:
+     *       required: false
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/DeleteClipBody" }
+     *     responses:
+     *       200:
+     *         description: Deleted.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MessageResponse" }
+     *       400:
+     *         description: Wrong folder password.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Clip not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
     async delete(http, { clip }) {
         if (clip.data.encrypted) {
             const folder = (await clip.folder())!;
