@@ -59,10 +59,10 @@ validate.post("Client/Folder@checkPassword", {
 });
 
 // Validate update clip route
+// Only title and content can be updated. `encrypted` is intentionally not accepted here.
 validate.post("Client/Content@update", {
     title: skipIfUndefined(isStringRequired),
-    content: skipIfUndefined(isStringRequired),
-    encrypted: "!default|boolean"
+    content: skipIfUndefined(isStringRequired)
 });
 
 // Validate delete clip route

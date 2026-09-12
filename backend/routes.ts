@@ -27,6 +27,9 @@ r.path("/client/v1/", () => {
             r.post("@paste");
             r.post("@upload");
 
+            // Must be declared before ":folder?" so "search" is not treated as a folder.
+            r.get("@search");
+
             r.get(":folder?", "clips");
         }).middlewares(["Auth.validateToken"]);
 

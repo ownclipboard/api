@@ -3,7 +3,7 @@ import Content, { ContentDataType } from "../../models/Content";
 import type { ObjectId } from "xpress-mongo";
 import { omitIdAndPick } from "xpress-mongo";
 import Folder, { FolderDataType } from "../../models/Folder";
-import { DefaultPaginationData } from "xpress-mongo/fn/helpers";
+import { DefaultPaginationData, escapeRegexp } from "xpress-mongo/fn/helpers";
 import { isString, isStringRequired } from "../../abolish/reusables";
 import { skipIfUndefined } from "abolish/src/helpers";
 import { oc_stringSize } from "../../functions";
@@ -219,29 +219,57 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
     },
 
     /**
+     * Search clips.
+     * Query: q (required), folder (optional), page, perPage
+     *
+     * Matches `title` on every clip, and `content` only on clips
+     * that are not encrypted (encrypted content is ciphertext).
+     */
+    async search(http, { authId }) {
+        const q = String(http.$query.get("q", "")).trim();
+        const folder = http.$query.get<string | undefined>("folder");
+
+        if (!q) return http.badRequestError("Query {q} is required!");
+        if (q.length > 200) return http.badRequestError("Query {q} is too long. (Max. 200)");
+
+        const { page, perPage } = http.paginationQuery();
+        const regex = new RegExp(escapeRegexp(q), "i");
+
+        const query: Record<string, any> = {
+            userId: authId,
+            $or: [
+                // title is searchable for every clip
+                { title: regex },
+                // content is only searchable when not encrypted
+                { encrypted: { $ne: true }, context: regex }
+            ]
+        };
+
+        if (folder) query.folder = folder;
+
+        const clips = await Content.paginate(page, perPage, query, {
+            projection: Content.projectPublicFields(),
+            sort: { updatedAt: -1 }
+        });
+
+        return { clips, query: q };
+    },
+
+    /**
      * Update clip
      * @param http
      * @param authId
      * @param clip
      */
     async update(http, { authId, clip }) {
-        const { content, ...others } =
-            http.validatedBody<{ title?: string; encrypted?: boolean; content?: string }>();
+        // Only title and content are updatable; anything else in the body is ignored.
+        const { title, content } = http.validatedBody<{ title?: string; content?: string }>();
 
         // Set only defined values
-        clip.toCollection().setDefined(<ContentDataType>{ ...others, context: content });
+        clip.toCollection().setDefined(<ContentDataType>{ title, context: content });
 
         // Stop if clip has no changes
         if (!clip.hasChanges()) return { info: "Clip has no changes" };
-
-        // Check if folder is encrypted and has password
-        if (others.encrypted && !clip.data.encrypted) {
-            const folder = await clip.folder();
-
-            if (!folder?.isEncrypted()) {
-                return { warning: "Clip does not belong to an encrypted folder" };
-            }
-        }
 
         await clip.save();
 
