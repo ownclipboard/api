@@ -25,7 +25,6 @@ r.path("/client/v1/", () => {
 
         r.path("clips", () => {
             r.post("@paste");
-            r.post("@upload");
 
             r.post("@copy");
             r.post("@move");

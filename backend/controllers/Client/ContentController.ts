@@ -4,8 +4,6 @@ import type { ObjectId } from "xpress-mongo";
 import { omitIdAndPick } from "xpress-mongo";
 import Folder, { FolderDataType } from "../../models/Folder";
 import { DefaultPaginationData, escapeRegexp } from "xpress-mongo/fn/helpers";
-import { isString, isStringRequired } from "../../abolish/reusables";
-import { skipIfUndefined } from "abolish/src/helpers";
 import { oc_stringSize } from "../../functions";
 import { oc_uniqueStringArray } from "../../functions/string.fn";
 import slugify from "slugify";
@@ -363,70 +361,6 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
                 ? "Clip already exists!"
                 : "Clip pasted successfully."
         };
-    },
-
-    /**
-     * @openapi
-     * /client/v1/clips/upload:
-     *   post:
-     *     tags: [Clips]
-     *     summary: Upload an image clip
-     *     description: Multipart upload of an image (png, jpg, jpeg, gif, bmp, webp), max 5 MB. Work in progress.
-     *     security: [{ ocToken: [] }]
-     *     requestBody:
-     *       required: true
-     *       content:
-     *         multipart/form-data:
-     *           schema:
-     *             type: object
-     *             required: [content]
-     *             properties:
-     *               content: { type: string, format: binary }
-     *               title: { type: string }
-     *               folder: { type: string, default: clipboard }
-     *     responses:
-     *       200:
-     *         description: Uploaded.
-     *         content:
-     *           application/json:
-     *             schema: { $ref: "#/components/schemas/UploadImageResponse" }
-     *       400:
-     *         description: Invalid file or folder.
-     *         content:
-     *           application/json:
-     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
-     *       401:
-     *         description: Missing or invalid `oc_token`.
-     *         content:
-     *           application/json:
-     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
-     */
-    async upload(http) {
-        // Get current user
-        const authId = http.authUserId();
-
-        // Get content as file.
-        const content = await http.file("content", {
-            size: 5,
-            // image only extensions
-            extensions: ["png", "jpg", "jpeg", "gif", "bmp", "webp"]
-        });
-
-        // Handle file upload error.
-        if (content.error()) return http.badRequestError(content.error()!.message);
-
-        // Validate file body
-        const [err, { title, folder }] = await http.validateAsync(content.body, {
-            title: skipIfUndefined(isString),
-            folder: ["default:clipboard", isStringRequired, { setAuthId: authId }, "FolderExists"]
-        });
-
-        // Handle validation error.
-        if (err) return http.badRequestError(err.message);
-
-        console.log({ title, folder });
-
-        return { message: "Image uploaded successfully!", content };
     },
 
     /**

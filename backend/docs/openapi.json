@@ -975,23 +975,6 @@
         },
         "additionalProperties": false
       },
-      "UploadImageResponse": {
-        "type": "object",
-        "properties": {
-          "message": {
-            "type": "string"
-          },
-          "content": {
-            "type": "object",
-            "description": "Raw upload result."
-          }
-        },
-        "required": [
-          "message",
-          "content"
-        ],
-        "additionalProperties": false
-      },
       "Owns3ConnectBody": {
         "type": "object",
         "properties": {
@@ -1138,6 +1121,10 @@
           "name": {
             "type": "string"
           },
+          "title": {
+            "type": "string",
+            "description": "Clip title, defaults to the file name."
+          },
           "ext": {
             "type": "string",
             "description": "Lower-cased extension without the dot, empty when none."
@@ -1173,6 +1160,7 @@
         "required": [
           "publicId",
           "name",
+          "title",
           "ext",
           "folder",
           "size",
@@ -1189,6 +1177,10 @@
           "name": {
             "type": "string",
             "description": "Original file name, up to 255 characters."
+          },
+          "title": {
+            "type": "string",
+            "description": "Optional clip title. Defaults to the file name."
           },
           "contentType": {
             "type": "string",
@@ -2229,7 +2221,7 @@
           "Files"
         ],
         "summary": "Request an upload slot",
-        "description": "Step 1 of 3. Requires a connected owns3 server. Creates a pending file record and\nreturns a presigned url. Step 2: `PUT` the raw file body to `upload.url` with the returned\nheaders (no api key needed). Step 3: call confirm. Encrypted folders are refused.\n",
+        "description": "Step 1 of 3. Requires a connected owns3 server. Creates a pending file record and\nreturns a presigned url. Step 2: `PUT` the raw file body to `upload.url` with the returned\nheaders (no api key needed). Step 3: call confirm. Encrypted folders are refused.\nThe clip's title is `title` when given, otherwise the file name; its content is always the file name.\n",
         "security": [
           {
             "ocToken": []
@@ -2244,6 +2236,7 @@
               },
               "example": {
                 "name": "photo.jpg",
+                "title": "Holiday photo",
                 "contentType": "image/jpeg",
                 "size": 204800,
                 "folder": "clipboard"
@@ -2629,78 +2622,6 @@
           },
           "400": {
             "description": "Validation error, or paste folder not found / expired.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/client/v1/clips/upload": {
-      "post": {
-        "tags": [
-          "Clips"
-        ],
-        "summary": "Upload an image clip",
-        "description": "Multipart upload of an image (png, jpg, jpeg, gif, bmp, webp), max 5 MB. Work in progress.",
-        "security": [
-          {
-            "ocToken": []
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "multipart/form-data": {
-              "schema": {
-                "type": "object",
-                "required": [
-                  "content"
-                ],
-                "properties": {
-                  "content": {
-                    "type": "string",
-                    "format": "binary"
-                  },
-                  "title": {
-                    "type": "string"
-                  },
-                  "folder": {
-                    "type": "string",
-                    "default": "clipboard"
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Uploaded.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UploadImageResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid file or folder.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing or invalid `oc_token`.",
             "content": {
               "application/json": {
                 "schema": {

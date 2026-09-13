@@ -269,12 +269,6 @@ export interface DeleteClipBody {
     password?: string;
 }
 
-export interface UploadImageResponse {
-    message: string;
-    /** Raw upload result. */
-    content: Record<string, any>;
-}
-
 // ---------------------------------------------------------------------------
 // owns3 & files
 // ---------------------------------------------------------------------------
@@ -325,6 +319,8 @@ export interface FileSummary {
 export interface File {
     publicId: string;
     name: string;
+    /** Clip title, defaults to the file name. */
+    title: string;
     /** Lower-cased extension without the dot, empty when none. */
     ext: string;
     /** Slug of the folder the clip lives in. */
@@ -340,6 +336,8 @@ export interface File {
 export interface FileUploadBody {
     /** Original file name, up to 255 characters. */
     name: string;
+    /** Optional clip title. Defaults to the file name. */
+    title?: string;
     /** MIME type, defaults to application/octet-stream. */
     contentType?: string;
     /** Declared size in bytes, informational. */

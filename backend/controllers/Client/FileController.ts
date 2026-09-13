@@ -55,13 +55,14 @@ export = <Controller.Object<{ authId: ObjectId; file: File }>>{
      *       Step 1 of 3. Requires a connected owns3 server. Creates a pending file record and
      *       returns a presigned url. Step 2: `PUT` the raw file body to `upload.url` with the returned
      *       headers (no api key needed). Step 3: call confirm. Encrypted folders are refused.
+     *       The clip's title is `title` when given, otherwise the file name; its content is always the file name.
      *     security: [{ ocToken: [] }]
      *     requestBody:
      *       required: true
      *       content:
      *         application/json:
      *           schema: { $ref: "#/components/schemas/FileUploadBody" }
-     *           example: { name: photo.jpg, contentType: image/jpeg, size: 204800, folder: clipboard }
+     *           example: { name: photo.jpg, title: Holiday photo, contentType: image/jpeg, size: 204800, folder: clipboard }
      *     responses:
      *       200:
      *         description: Upload slot.
@@ -88,8 +89,8 @@ export = <Controller.Object<{ authId: ObjectId; file: File }>>{
      * Request an upload slot.
      */
     async upload(http, { authId: userId }) {
-        type body = { name: string; contentType?: string; size?: number; folder: string };
-        const { name, contentType, size, folder } = http.validatedBody<body>();
+        type body = { name: string; title?: string; contentType?: string; size?: number; folder: string };
+        const { name, title, contentType, size, folder } = http.validatedBody<body>();
 
         const owns3 = await owns3ForUser(userId);
         if (!owns3) return http.badRequestError("Connect an owns3 server before uploading files.");
@@ -110,6 +111,7 @@ export = <Controller.Object<{ authId: ObjectId; file: File }>>{
             userId,
             folder: $folder.data.slug,
             name: name.trim(),
+            title: (title ?? "").trim() || name.trim(),
             ext: File.extensionOf(name),
             path,
             size: size ?? 0,
@@ -199,7 +201,7 @@ export = <Controller.Object<{ authId: ObjectId; file: File }>>{
 
         const clip = Content.make(<ContentDataType>{
             userId,
-            title: file.data.name,
+            title: file.data.title || file.data.name,
             context: file.data.name,
             type: "file",
             folder: folder.data.slug,

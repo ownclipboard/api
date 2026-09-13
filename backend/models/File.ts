@@ -19,6 +19,8 @@ export interface FileDataType {
     folder: string;
     /** Original file name as given by the client. */
     name: string;
+    /** Clip title. Defaults to the file name. */
+    title: string;
     /** Lower-cased extension without the dot, e.g. `png`. Empty when the name has none. */
     ext: string;
     /** Object path on owns3, relative to the app folder. */
@@ -39,6 +41,7 @@ class File extends BaseModel {
         clipId: is.ObjectId(),
         folder: is.String("clipboard").required(),
         name: is.String().required(),
+        title: is.String().required(),
         ext: is.String("").required(),
         path: is.String().required(),
         size: is.Number(0).required(),
@@ -49,7 +52,7 @@ class File extends BaseModel {
         uploadedAt: is.Date().undefined()
     };
 
-    static publicFields = ["publicId", "name", "ext", "folder", "size", "contentType", "status", "createdAt", "uploadedAt"];
+    static publicFields = ["publicId", "name", "title", "ext", "folder", "size", "contentType", "status", "createdAt", "uploadedAt"];
 
     public data!: FileDataType;
 

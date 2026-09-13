@@ -93,6 +93,7 @@ validate.post("Client/Owns3@connect", {
 // Validate file upload slot request
 validate.post("Client/File@upload", (http) => ({
     name: [isStringRequired, "maxLength:255"],
+    title: skipIfUndefined([isStringRequired, "maxLength:255"]),
     contentType: skipIfUndefined([isString, "maxLength:255"]),
     size: skipIfUndefined("number|min:0"),
     folder: ["default:clipboard", isStringRequired, { setAuthId: http.authUserId() }, "FolderExists"]
