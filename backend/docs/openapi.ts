@@ -49,8 +49,14 @@ export function buildOpenApiSpec(): Record<string, any> {
                 { name: "Subscription", description: "Pro plan subscriptions paid through NowPayments." },
                 { name: "Folders", description: "Folders that group clips." },
                 { name: "Clips", description: "Clipboard contents." },
+                { name: "Devices", description: "Api keys used by external apps through the legacy api." },
                 { name: "Files", description: "Files stored on the user's own owns3 server, represented as file clips." },
-                { name: "Public", description: "Endpoints that need no authentication (public paste)." }
+                { name: "Public", description: "Endpoints that need no authentication (public paste)." },
+                {
+                    name: "Legacy",
+                    description:
+                        "Api of the first OwnClipboard platform, served at `/api/old/*` so existing apps keep working. Authenticated with a device api key sent as the `oc-key` header, an `api_key` query param or an `api_key` body field, never with the jwt."
+                }
             ],
             components: {
                 securitySchemes: {

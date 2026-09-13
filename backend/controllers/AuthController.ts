@@ -208,6 +208,46 @@ export = <Controller.Object>{
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
      */
     /**
+     * @openapi
+     * /client/v1/auth/logout:
+     *   post:
+     *     tags: [Auth]
+     *     summary: Log out
+     *     description: |
+     *       Ends every session of the account, on every device. The jwt carries a login token
+     *       that is compared on each request, and this endpoint replaces it, so all tokens
+     *       issued so far stop working. The client should discard its own token as well.
+     *     security: [{ ocToken: [] }]
+     *     responses:
+     *       200:
+     *         description: Logged out.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MessageResponse" }
+     *       400:
+     *         description: Invalid or already ended session.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       401:
+     *         description: Missing `oc_token`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
+     * Log out of every device by rotating the account's login token.
+     */
+    async logout(http) {
+        // A fresh login token invalidates every jwt issued so far.
+        const loginToken = (User.schema.loginToken as XMongoDataType).schema.default();
+
+        await User.native().updateOne({ _id: http.authUserId() }, { $set: { loginToken } });
+
+        return { message: "Logged out of all devices." };
+    },
+
+    /**
      * Check validity of username.
      * @param http
      */

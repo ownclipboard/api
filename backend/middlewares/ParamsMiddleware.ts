@@ -2,6 +2,7 @@ import { ParamsMiddleware } from "@xpresser/params-loader";
 import Folder, { FolderDataType } from "../models/Folder";
 import Content, { ContentDataType } from "../models/Content";
 import File, { FileDataType } from "../models/File";
+import Device, { DeviceDataType } from "../models/Device";
 
 // Define your params
 export = ParamsMiddleware({
@@ -41,6 +42,14 @@ export = ParamsMiddleware({
             return File.findOne(<FileDataType>{ publicId, userId: http.authUserId() });
         },
         notFound: (http, file) => http.error(`File with id: '${file}' not found!`, 404)
+    },
+
+    device: {
+        addToBoot: true,
+        load: (publicId, http) => {
+            return Device.findOne(<DeviceDataType>{ publicId, userId: http.authUserId() });
+        },
+        notFound: (http, device) => http.error(`Device with id: '${device}' not found!`, 404)
     },
 
     pasteId: {

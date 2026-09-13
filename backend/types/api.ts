@@ -384,3 +384,110 @@ export interface FileUrlResponse {
     method: "GET";
     expiresIn: number;
 }
+
+// ---------------------------------------------------------------------------
+// Devices
+// ---------------------------------------------------------------------------
+
+/** Public view of a device. The api key is never included. */
+export interface Device {
+    publicId: string;
+    name: string;
+    /** Slug of the folder the device reads from and writes to. */
+    folder: string;
+    /** A disabled device's key is refused by the legacy api. */
+    enabled: boolean;
+    /** Number of legacy api calls made with this key. */
+    hits: number;
+    /** Last characters of the api key, to tell devices apart. */
+    keyHint: string;
+    /** Whether the key has been connected through the legacy `connect` endpoint. */
+    connected: boolean;
+    /** `device_id` the app sent when it connected. */
+    usedBy?: string;
+    lastUsedAt?: string | null;
+    createdAt: string;
+}
+
+export interface DeviceListResponse {
+    devices: Device[];
+    limit: {
+        /** Devices allowed on the current plan. `null` means unlimited. */
+        max: number | null;
+        used: number;
+    };
+}
+
+export interface CreateDeviceBody {
+    /** 2 to 50 characters. */
+    name: string;
+    /** Folder name or slug the device uses. Defaults to clipboard. Encrypted folders are refused. */
+    folder?: string;
+}
+
+/** The api key is only ever returned here, when created or rotated. */
+export interface CreateDeviceResponse {
+    device: Device;
+    /** 100 character api key. Shown once, only its hash is stored. */
+    apiKey: string;
+    message: string;
+}
+
+export interface RenameDeviceBody {
+    name: string;
+}
+
+export interface SetDeviceFolderBody {
+    /** Folder name or slug. */
+    folder: string;
+}
+
+export interface DeviceResponse {
+    device: Device;
+    message: string;
+}
+
+// ---------------------------------------------------------------------------
+// Legacy api (/api/old)
+// ---------------------------------------------------------------------------
+
+/** A clip as the first OwnClipboard platform returned it. */
+export interface LegacyClip {
+    /** Clip id, called `code` on the old platform. */
+    code: string;
+    type: "text" | "url";
+    content: string;
+    /** 0 or 1, as the old sqlite rows had it. */
+    locked: number;
+    /** 0 or 1, as the old sqlite rows had it. */
+    favorite: number;
+    /** `YYYY-MM-DD HH:MM:SS`, UTC. */
+    created_at: string | null;
+    /** Content with html entities escaped and newlines turned into `<br>`. */
+    html_formatted: string;
+}
+
+export interface LegacyClipsResponse {
+    status: number;
+    data: {
+        /** Echo of the `search` query, absent when none was sent. */
+        search?: string;
+        clips: {
+            total: number;
+            perPage: number;
+            page: number;
+            lastPage: number;
+            data: LegacyClip[];
+        };
+    };
+}
+
+/** Error envelope of the legacy api. */
+export interface LegacyErrorResponse {
+    status: number;
+    error: {
+        /** `api_key_not_found`, `api_key_not_valid`, `api_key_not_connected`, `clip_not_found`, `clip_not_valid`, `empty_content` or `404`. */
+        type: string;
+        message: string;
+    };
+}

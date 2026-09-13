@@ -33,12 +33,20 @@
       "description": "Clipboard contents."
     },
     {
+      "name": "Devices",
+      "description": "Api keys used by external apps through the legacy api."
+    },
+    {
       "name": "Files",
       "description": "Files stored on the user's own owns3 server, represented as file clips."
     },
     {
       "name": "Public",
       "description": "Endpoints that need no authentication (public paste)."
+    },
+    {
+      "name": "Legacy",
+      "description": "Api of the first OwnClipboard platform, served at `/api/old/*` so existing apps keep working. Authenticated with a device api key sent as the `oc-key` header, an `api_key` query param or an `api_key` body field, never with the jwt."
     }
   ],
   "components": {
@@ -1350,6 +1358,315 @@
           "expiresIn"
         ],
         "additionalProperties": false
+      },
+      "Device": {
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "folder": {
+            "type": "string",
+            "description": "Slug of the folder the device reads from and writes to."
+          },
+          "enabled": {
+            "type": "boolean",
+            "description": "A disabled device's key is refused by the legacy api."
+          },
+          "hits": {
+            "type": "number",
+            "description": "Number of legacy api calls made with this key."
+          },
+          "keyHint": {
+            "type": "string",
+            "description": "Last characters of the api key, to tell devices apart."
+          },
+          "connected": {
+            "type": "boolean",
+            "description": "Whether the key has been connected through the legacy `connect` endpoint."
+          },
+          "usedBy": {
+            "type": "string",
+            "description": "`device_id` the app sent when it connected."
+          },
+          "lastUsedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "publicId",
+          "name",
+          "folder",
+          "enabled",
+          "hits",
+          "keyHint",
+          "connected",
+          "createdAt"
+        ],
+        "additionalProperties": false,
+        "description": "Public view of a device. The api key is never included."
+      },
+      "DeviceListResponse": {
+        "type": "object",
+        "properties": {
+          "devices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Device"
+            }
+          },
+          "limit": {
+            "type": "object",
+            "properties": {
+              "max": {
+                "type": [
+                  "number",
+                  "null"
+                ],
+                "description": "Devices allowed on the current plan. `null` means unlimited."
+              },
+              "used": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "max",
+              "used"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "devices",
+          "limit"
+        ],
+        "additionalProperties": false
+      },
+      "CreateDeviceBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "2 to 50 characters."
+          },
+          "folder": {
+            "type": "string",
+            "description": "Folder name or slug the device uses. Defaults to clipboard. Encrypted folders are refused."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "CreateDeviceResponse": {
+        "type": "object",
+        "properties": {
+          "device": {
+            "$ref": "#/components/schemas/Device"
+          },
+          "apiKey": {
+            "type": "string",
+            "description": "100 character api key. Shown once, only its hash is stored."
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "device",
+          "apiKey",
+          "message"
+        ],
+        "additionalProperties": false,
+        "description": "The api key is only ever returned here, when created or rotated."
+      },
+      "RenameDeviceBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "SetDeviceFolderBody": {
+        "type": "object",
+        "properties": {
+          "folder": {
+            "type": "string",
+            "description": "Folder name or slug."
+          }
+        },
+        "required": [
+          "folder"
+        ],
+        "additionalProperties": false
+      },
+      "DeviceResponse": {
+        "type": "object",
+        "properties": {
+          "device": {
+            "$ref": "#/components/schemas/Device"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "device",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "LegacyClip": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "description": "Clip id, called `code` on the old platform."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "text",
+              "url"
+            ]
+          },
+          "content": {
+            "type": "string"
+          },
+          "locked": {
+            "type": "number",
+            "description": "0 or 1, as the old sqlite rows had it."
+          },
+          "favorite": {
+            "type": "number",
+            "description": "0 or 1, as the old sqlite rows had it."
+          },
+          "created_at": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`YYYY-MM-DD HH:MM:SS`, UTC."
+          },
+          "html_formatted": {
+            "type": "string",
+            "description": "Content with html entities escaped and newlines turned into `<br>`."
+          }
+        },
+        "required": [
+          "code",
+          "type",
+          "content",
+          "locked",
+          "favorite",
+          "created_at",
+          "html_formatted"
+        ],
+        "additionalProperties": false,
+        "description": "A clip as the first OwnClipboard platform returned it."
+      },
+      "LegacyClipsResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "number"
+          },
+          "data": {
+            "type": "object",
+            "properties": {
+              "search": {
+                "type": "string",
+                "description": "Echo of the `search` query, absent when none was sent."
+              },
+              "clips": {
+                "type": "object",
+                "properties": {
+                  "total": {
+                    "type": "number"
+                  },
+                  "perPage": {
+                    "type": "number"
+                  },
+                  "page": {
+                    "type": "number"
+                  },
+                  "lastPage": {
+                    "type": "number"
+                  },
+                  "data": {
+                    "type": "array",
+                    "items": {
+                      "$ref": "#/components/schemas/LegacyClip"
+                    }
+                  }
+                },
+                "required": [
+                  "total",
+                  "perPage",
+                  "page",
+                  "lastPage",
+                  "data"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "clips"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "status",
+          "data"
+        ],
+        "additionalProperties": false
+      },
+      "LegacyErrorResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "number"
+          },
+          "error": {
+            "type": "object",
+            "properties": {
+              "type": {
+                "type": "string",
+                "description": "`api_key_not_found`, `api_key_not_valid`, `api_key_not_connected`, `clip_not_found`, `clip_not_valid`, `empty_content` or `404`."
+              },
+              "message": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "type",
+              "message"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "status",
+          "error"
+        ],
+        "additionalProperties": false,
+        "description": "Error envelope of the legacy api."
       }
     }
   },
@@ -1510,6 +1827,320 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/old/validate": {
+      "post": {
+        "tags": [
+          "Legacy"
+        ],
+        "summary": "Validate that this host is an OwnClipboard server",
+        "description": "Legacy api. Needs no api key: apps call it to confirm an endpoint belongs to\nOwnClipboard before asking the user for a key.\n",
+        "responses": {
+          "200": {
+            "description": "This is an OwnClipboard server.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "allowPublicValidation": {
+                          "type": "boolean",
+                          "example": true
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/old/connect": {
+      "post": {
+        "tags": [
+          "Legacy"
+        ],
+        "summary": "Connect an api key (one time)",
+        "description": "Legacy api. A key has to be connected once before any other endpoint accepts it.\nThe app may send a `device_id` to tie the key to itself. The key is echoed back.\nSend the key as the `oc-key` header, an `api_key` query param or an `api_key` body field.\n",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "api_key": {
+                    "type": "string",
+                    "minLength": 100,
+                    "maxLength": 100
+                  },
+                  "device_id": {
+                    "type": "string",
+                    "description": "Identifier of the app or machine."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "api_key": {
+                          "type": "string"
+                        },
+                        "hits": {
+                          "type": "integer"
+                        },
+                        "used_by": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`api_key_not_found` or `api_key_not_valid`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegacyErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/old/all": {
+      "get": {
+        "tags": [
+          "Legacy"
+        ],
+        "summary": "Get or search clips",
+        "description": "Legacy api. Returns the clips of the device's folder, newest first, 20 per page.\n`search` matches the clip text and is ignored when shorter than 2 characters.\nFile clips are never returned.\n",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "api_key",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "search",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of clips.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegacyClipsResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`api_key_not_found`, `api_key_not_valid` or `api_key_not_connected`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegacyErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/old/add": {
+      "post": {
+        "tags": [
+          "Legacy"
+        ],
+        "summary": "Add a clip",
+        "description": "Legacy api. Adds a clip to the device's folder. Identical text already in that folder\nis not duplicated: the existing clip is returned with `exists: true`.\n",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "content"
+                ],
+                "properties": {
+                  "api_key": {
+                    "type": "string"
+                  },
+                  "content": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The created or existing clip.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "content": {
+                          "$ref": "#/components/schemas/LegacyClip"
+                        },
+                        "exists": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`empty_content`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegacyErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/old/delete": {
+      "delete": {
+        "tags": [
+          "Legacy"
+        ],
+        "summary": "Delete a clip",
+        "description": "Legacy api. `clip` is the `code` of the clip, sent as a query param or a body field.\nOnly clips in the device's folder can be deleted.\n",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "api_key",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "clip",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Clip code."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "integer",
+                      "example": 200
+                    },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "deleted": {
+                          "type": "boolean",
+                          "example": true
+                        },
+                        "code": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`clip_not_valid`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegacyErrorResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`clip_not_found`, no clip in the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LegacyErrorResponse"
                 }
               }
             }
@@ -1683,6 +2314,52 @@
           },
           "400": {
             "description": "Invalid username.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/auth/logout": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Log out",
+        "description": "Ends every session of the account, on every device. The jwt carries a login token\nthat is compared on each request, and this endpoint replaces it, so all tokens\nissued so far stop working. The client should discard its own token as well.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Logged out.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid or already ended session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing `oc_token`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2625,6 +3302,416 @@
           },
           "404": {
             "description": "File not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/devices": {
+      "get": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "List devices",
+        "description": "Every device of the user, newest first, with how many of the plan's devices are used.\nApi keys are never returned, only the last characters of each key (`keyHint`).\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Devices.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `oc_token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Create a device",
+        "description": "Creates a device and returns its api key. The key is shown **once**: only its hash is\nstored, so a lost key has to be rotated. Free accounts may have 3 devices, Pro unlimited.\nThe device reads and writes clips in one folder, `clipboard` by default. Encrypted\nfolders are refused.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateDeviceBody"
+              },
+              "example": {
+                "name": "My Laptop",
+                "folder": "clipboard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Device created, with its api key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateDeviceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error or encrypted folder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Device limit of the plan reached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/device/{device}/rename": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Rename a device",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Device publicId."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameDeviceBody"
+              },
+              "example": {
+                "name": "Work Laptop"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Renamed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/device/{device}/folder": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Change the device folder",
+        "description": "Sets the folder the device reads from and writes to through the legacy api.\nEncrypted folders are refused. Clips already created stay where they are.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Device publicId."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetDeviceFolderBody"
+              },
+              "example": {
+                "folder": "work"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Folder changed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Unknown or encrypted folder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/device/{device}/rotate-key": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Rotate the api key",
+        "description": "Replaces the device's api key and returns the new one **once**. The old key stops\nworking immediately, and the app has to call the legacy `connect` endpoint again.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Device publicId."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "New api key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateDeviceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/device/{device}/enable": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Enable a device",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Device publicId."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Enabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/device/{device}/disable": {
+      "post": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Disable a device",
+        "description": "A disabled key is refused by the legacy api exactly like an unknown one.",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Device publicId."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disabled.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/device/{device}": {
+      "delete": {
+        "tags": [
+          "Devices"
+        ],
+        "summary": "Delete a device",
+        "description": "The api key stops working. Clips the device created stay.",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "device",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Device publicId."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Device not found.",
             "content": {
               "application/json": {
                 "schema": {

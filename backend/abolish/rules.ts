@@ -104,6 +104,25 @@ validate.post("Client/File@upload", (http) => ({
     folder: ["default:clipboard", isStringRequired, { setAuthId: http.authUserId() }, "FolderExists"]
 }));
 
+// Validate device routes
+const deviceName = [isStringRequired, "minLength:2|maxLength:50"];
+
+validate.post("Client/Device@create", (http) => ({
+    name: deviceName,
+    folder: [
+        "default:clipboard",
+        isStringRequired,
+        { setAuthId: http.authUserId() },
+        "FolderExists"
+    ]
+}));
+
+validate.post("Client/Device@rename", { name: deviceName });
+
+validate.post("Client/Device@setFolder", (http) => ({
+    folder: [isStringRequired, { setAuthId: http.authUserId() }, "FolderExists"]
+}));
+
 validate.post("Client/Content@find", {
     ids: $joi((joi) => joi.array().required().items(joi.string().label("ids.*")).label("ids"))
 });
