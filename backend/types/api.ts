@@ -203,6 +203,11 @@ export interface CreateFolderBody {
     name: string;
 }
 
+export interface RenameFolderBody {
+    /** New folder name, up to 100 characters. The slug is derived from it. */
+    name: string;
+}
+
 export interface FolderPasswordBody {
     /** MD5 hash (32 hex characters) of the password chosen by the user. */
     password: string;

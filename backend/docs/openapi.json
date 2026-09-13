@@ -806,6 +806,19 @@
         ],
         "additionalProperties": false
       },
+      "RenameFolderBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "New folder name, up to 100 characters. The slug is derived from it."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
       "FolderPasswordBody": {
         "type": "object",
         "properties": {
@@ -1917,6 +1930,76 @@
           },
           "400": {
             "description": "Validation error.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Folder not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/folder/{folder}/rename": {
+      "post": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Rename folder",
+        "description": "Renames a folder. The slug is derived from the new name, and every clip and file in\nthe folder is moved to the new slug, so the client must use the returned `slug` from\nnow on. The default `clipboard` and `encrypted` folders cannot be renamed.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folder",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Current folder slug."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameFolderBody"
+              },
+              "example": {
+                "name": "Work notes"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The renamed folder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Folder"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation error, protected folder, or a folder with that name already exists.",
             "content": {
               "application/json": {
                 "schema": {

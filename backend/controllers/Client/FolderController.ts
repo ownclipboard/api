@@ -1,7 +1,8 @@
 import { Controller, Http } from "xpresser/types/http";
 import Folder, { FolderDataType } from "../../models/Folder";
 import bcrypt from "bcryptjs";
-import { nanoid } from "nanoid"
+import { nanoid } from "nanoid";
+import slugify from "slugify";
 import Content from "../../models/Content";
 import File from "../../models/File";
 import { owns3ForUser } from "../../lib/Owns3";
@@ -18,7 +19,7 @@ export = <Controller.Object<{ folder: Folder }>>{
     e: (http: Http, error: string) => http.status(401).json({ error }),
 
     middlewares: {
-        Abolish: ["create", "setPassword", "checkPassword"],
+        Abolish: ["create", "rename", "setPassword", "checkPassword"],
         "params.pasteId": "pasteId"
     },
 
@@ -84,14 +85,18 @@ export = <Controller.Object<{ folder: Folder }>>{
             .aggregate([
                 { $match: { userId } },
                 {
+                    // Count only this user's clips: folder slugs are not unique across users.
                     $lookup: {
                         from: "contents",
-                        localField: "slug",
-                        foreignField: "folder",
+                        let: { slug: "$slug" },
+                        pipeline: [
+                            { $match: { $expr: { $and: [{ $eq: ["$userId", userId] }, { $eq: ["$folder", "$$slug"] }] } } },
+                            { $count: "n" }
+                        ],
                         as: "contents"
                     }
                 },
-                { $addFields: { contents: { $size: "$contents" } } },
+                { $addFields: { contents: { $ifNull: [{ $arrayElemAt: ["$contents.n", 0] }, 0] } } },
                 { $project: Folder.projectPublicFields() }
             ])
             .toArray();
@@ -151,6 +156,74 @@ export = <Controller.Object<{ folder: Folder }>>{
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
      */
+    /**
+     * @openapi
+     * /client/v1/folder/{folder}/rename:
+     *   post:
+     *     tags: [Folders]
+     *     summary: Rename folder
+     *     description: |
+     *       Renames a folder. The slug is derived from the new name, and every clip and file in
+     *       the folder is moved to the new slug, so the client must use the returned `slug` from
+     *       now on. The default `clipboard` and `encrypted` folders cannot be renamed.
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: folder, required: true, schema: { type: string }, description: Current folder slug. }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/RenameFolderBody" }
+     *           example: { name: Work notes }
+     *     responses:
+     *       200:
+     *         description: The renamed folder.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/Folder" }
+     *       400:
+     *         description: Validation error, protected folder, or a folder with that name already exists.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Folder not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
+     * Rename a folder and move its clips and files to the new slug.
+     */
+    async rename(http, { folder }) {
+        const { name } = http.validatedBody<{ name: string }>();
+        const { userId, slug: oldSlug } = folder.data;
+
+        if (["clipboard", "encrypted"].includes(oldSlug)) {
+            return http.badRequestError(`Folder '${folder.data.name}' is a default folder and cannot be renamed.`);
+        }
+
+        const newSlug = slugify(name, { lower: true, replacement: "-" });
+        if (!/[a-z0-9]/.test(newSlug)) return http.badRequestError("Folder name must contain letters or numbers.");
+
+        if (name === folder.data.name) return { ...folder.getPublicFields(), info: "Folder name unchanged." };
+
+        // Another folder already owns the new slug?
+        const clash = await Folder.exists({ userId, slug: newSlug, _id: { $ne: folder.id() } });
+        if (clash) return http.badRequestError(`Folder with name: '${name}' already exists.`);
+
+        await folder.update({ name, slug: newSlug });
+
+        if (newSlug !== oldSlug) {
+            await Promise.all([
+                Content.native().updateMany({ userId, folder: oldSlug }, { $set: { folder: newSlug } }),
+                File.native().updateMany({ userId, folder: oldSlug }, { $set: { folder: newSlug } })
+            ]);
+        }
+
+        return { ...folder.getPublicFields(), message: "Folder renamed." };
+    },
+
     /**
      * Set password for a folder.
      * @param http

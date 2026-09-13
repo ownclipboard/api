@@ -52,6 +52,7 @@ r.path("/client/v1/", () => {
         r.path("folder/:folder", () => {
             r.delete("=delete");
 
+            r.post("@rename");
             r.post("@setPassword");
             r.post("@checkPassword");
             r.post("@enablePublicPaste");

@@ -49,6 +49,11 @@ validate.post("Client/Folder@create", (http) => ({
 }));
 
 // Validate setup folder password
+// Validate rename folder route (uniqueness is checked in the action, since the folder may keep its slug)
+validate.post("Client/Folder@rename", {
+    name: [isStringRequired, "maxLength:100"]
+});
+
 validate.post("Client/Folder@setPassword", {
     password: [isStringRequired, "md5"]
 });
