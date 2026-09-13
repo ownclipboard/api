@@ -696,7 +696,26 @@
         "additionalProperties": false
       },
       "SignupBody": {
-        "$ref": "#/components/schemas/LoginBody"
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "3 to 250 alphanumeric characters."
+          },
+          "password": {
+            "type": "string",
+            "description": "6 to 500 characters."
+          },
+          "email": {
+            "type": "string",
+            "description": "Optional. Must be unique; stored trimmed and lower-cased. Used for password resets."
+          }
+        },
+        "additionalProperties": false,
+        "required": [
+          "password",
+          "username"
+        ]
       },
       "CheckUsernameBody": {
         "type": "object",
@@ -1037,6 +1056,18 @@
           "connected": {
             "type": "boolean"
           },
+          "default": {
+            "type": "boolean",
+            "description": "True when the connected storage is the app's default one."
+          },
+          "defaultAvailable": {
+            "type": "boolean",
+            "description": "Whether the server offers a default storage (`POST account/owns3/use-default`, Pro only)."
+          },
+          "proRequired": {
+            "type": "boolean",
+            "description": "Set when the user chose the default storage but is no longer Pro: `connected` is false until they renew."
+          },
           "endpoint": {
             "type": "string"
           },
@@ -1059,7 +1090,9 @@
           }
         },
         "required": [
-          "connected"
+          "connected",
+          "default",
+          "defaultAvailable"
         ],
         "additionalProperties": false
       },
@@ -1068,6 +1101,18 @@
         "properties": {
           "connected": {
             "type": "boolean"
+          },
+          "default": {
+            "type": "boolean",
+            "description": "True when the connected storage is the app's default one."
+          },
+          "defaultAvailable": {
+            "type": "boolean",
+            "description": "Whether the server offers a default storage (`POST account/owns3/use-default`, Pro only)."
+          },
+          "proRequired": {
+            "type": "boolean",
+            "description": "Set when the user chose the default storage but is no longer Pro: `connected` is false until they renew."
           },
           "endpoint": {
             "type": "string"
@@ -1099,6 +1144,8 @@
         "required": [
           "bucket",
           "connected",
+          "default",
+          "defaultAvailable",
           "message"
         ],
         "additionalProperties": false
@@ -1567,7 +1614,7 @@
           "Auth"
         ],
         "summary": "Sign up",
-        "description": "Creates an account with the default `Clipboard` and `Encrypted` folders.",
+        "description": "Creates an account with the default `Clipboard` and `Encrypted` folders.\n`email` is optional, must be unique, and is kept for password resets.\n",
         "requestBody": {
           "required": true,
           "content": {
@@ -1577,7 +1624,8 @@
               },
               "example": {
                 "username": "alice",
-                "password": "secret123"
+                "password": "secret123",
+                "email": "alice@example.com"
               }
             }
           }
@@ -1594,7 +1642,7 @@
             }
           },
           "400": {
-            "description": "Validation error or username already taken.",
+            "description": "Validation error, username already taken, or email already in use.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1652,7 +1700,7 @@
           "Files"
         ],
         "summary": "owns3 connection status",
-        "description": "Whether the user has connected their own owns3 server (https://github.com/ownclipboard/owns3), where their files are stored. Never returns the api key.",
+        "description": "Whether the user has a storage connected: their own owns3 server (https://github.com/ownclipboard/owns3)\nor the app's default one (`default: true`). `defaultAvailable` says whether the default option is offered.\nNever returns an api key.\n",
         "security": [
           {
             "ocToken": []
@@ -1739,6 +1787,52 @@
           },
           "502": {
             "description": "The owns3 endpoint could not be reached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/account/owns3/use-default": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Use the app's default storage",
+        "description": "Pro only. Connects the user to the owns3 storage operated by OwnClipboard, so they can\nupload files without running their own server. Files are stored under the user's own\nprefix. Replaces any previously connected server. Only available when the status reports\n`defaultAvailable`. If the Pro subscription later expires, the status reports\n`proRequired` and uploads are refused until it is renewed or an own server is connected.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connected to the default storage.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Owns3ConnectResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Not a Pro user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The default storage is not configured or not reachable.",
             "content": {
               "application/json": {
                 "schema": {

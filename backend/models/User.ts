@@ -42,8 +42,11 @@ export interface UserDataType {
 }
 
 export interface Owns3Config {
+    /** True when the user uses the app's default owns3 storage (details come from env). */
+    isDefault?: boolean;
     endpoint: string;
-    apiKey: string;
+    /** Encrypted api key. Absent when `isDefault` is true. */
+    apiKey?: string;
     app: { id: string; name: string; slug: string; folder: string };
     permissions: string[];
     connectedAt: Date;
@@ -63,8 +66,9 @@ class User extends BaseModel {
         loginToken: is.String(() => oc_nanoid(21)).required(),
         owns3: joi
             .object({
+                isDefault: joi.boolean().optional(),
                 endpoint: joi.string().required(),
-                apiKey: joi.string().required(),
+                apiKey: joi.string().optional(),
                 app: joi
                     .object({
                         id: joi.string().required(),
@@ -104,7 +108,11 @@ class User extends BaseModel {
  * .native() will be made available for use.
  */
 UseCollection(User, "users");
-CreateIndex(User, "publicId", true)
+CreateIndex(User, "publicId", true);
+// Unique email, sparse so accounts without one do not collide.
+User.native()
+    .createIndex({ email: 1 }, { unique: true, sparse: true })
+    .catch((e) => console.error("[users] email index:", e.message));
 
 // Export Model as Default
 export default User;

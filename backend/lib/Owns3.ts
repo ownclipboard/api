@@ -170,15 +170,38 @@ export default Owns3;
 import User from "../models/User";
 import type { ObjectId } from "xpress-mongo";
 import { decryptSecret } from "./Crypto";
+import { env } from "../../env";
+
+/** The app's default owns3 storage from env, or null when not configured. */
+export function defaultOwns3(): Owns3 | null {
+    const endpoint = env.OWNS3_DEFAULT_ENDPOINT;
+    const apiKey = env.OWNS3_DEFAULT_API_KEY;
+
+    if (!endpoint || !apiKey) return null;
+
+    return new Owns3(normalizeOwns3Endpoint(endpoint), apiKey);
+}
 
 /**
  * owns3 client for a user, or null when they have not connected a server.
+ * Users on the default storage resolve to the env configured server.
  */
 export async function owns3ForUser(userId: ObjectId): Promise<Owns3 | null> {
-    const user = await User.findById(userId, { projection: { owns3: 1 } });
+    const user = await User.findById(userId, { projection: { owns3: 1, plan: 1 } });
     const config = user?.data.owns3;
 
     if (!config) return null;
+
+    if (config.isDefault) {
+        // The default storage is a Pro perk: stop resolving it once the plan lapses.
+        if (user!.data.plan !== "pro") return null;
+
+        const client = defaultOwns3();
+        if (!client) console.error("[owns3] user is on default storage but OWNS3_DEFAULT_* env is not set.");
+        return client;
+    }
+
+    if (!config.apiKey) return null;
 
     return new Owns3(config.endpoint, decryptSecret(config.apiKey));
 }

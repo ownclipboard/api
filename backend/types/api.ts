@@ -166,7 +166,10 @@ export interface LoginResponse {
     plan: "free" | "pro" | null;
 }
 
-export type SignupBody = LoginBody;
+export interface SignupBody extends LoginBody {
+    /** Optional. Must be unique; stored trimmed and lower-cased. Used for password resets. */
+    email?: string;
+}
 
 export interface CheckUsernameBody {
     username: string;
@@ -295,6 +298,12 @@ export interface Owns3App {
 
 export interface Owns3Status {
     connected: boolean;
+    /** True when the connected storage is the app's default one. */
+    default: boolean;
+    /** Whether the server offers a default storage (`POST account/owns3/use-default`, Pro only). */
+    defaultAvailable: boolean;
+    /** Set when the user chose the default storage but is no longer Pro: `connected` is false until they renew. */
+    proRequired?: boolean;
     endpoint?: string;
     app?: Owns3App;
     permissions?: ("read" | "write" | "delete")[];

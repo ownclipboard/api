@@ -63,6 +63,7 @@ r.path("/client/v1/", () => {
     r.path("account/owns3", () => {
         r.get("=status");
         r.post("=connect");
+        r.post("@useDefault");
         r.post("@disconnect");
     }).controller("Client/Owns3").middlewares(["Auth.validateToken"]);
 

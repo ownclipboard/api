@@ -5,7 +5,8 @@ import { pickKeys, XMongoDataType } from "xpress-mongo";
 import { signJwt } from "@xpresser/jwt";
 import { $ } from "../../xpresser";
 import { Abolish, compileSchemaT } from "abolish";
-import { isPasswordRequired, isUsername } from "../abolish/reusables";
+import { isEmailRequired, isPasswordRequired, isUsername } from "../abolish/reusables";
+import { skipIfUndefined } from "abolish/src/helpers";
 
 
 const LoginSchema = compileSchemaT({
@@ -13,10 +14,14 @@ const LoginSchema = compileSchemaT({
     password: isPasswordRequired
 })
 
-const SignupSchema = compileSchemaT({
+// Not compiled: compiled schemas drop `string:trim` modifiers before the next validator runs,
+// which makes " a@b.com " fail the email check.
+const SignupSchema = {
     username: [isUsername, "!UsernameExists"],
-    password: isPasswordRequired
-})
+    password: isPasswordRequired,
+    // Optional, kept for password resets. Trimmed and lower-cased.
+    email: skipIfUndefined(isEmailRequired)
+};
 
 const CheckUsernameSchema = compileSchemaT({
     username: isUsername
@@ -118,13 +123,15 @@ export = <Controller.Object>{
      *   post:
      *     tags: [Auth]
      *     summary: Sign up
-     *     description: Creates an account with the default `Clipboard` and `Encrypted` folders.
+     *     description: |
+     *       Creates an account with the default `Clipboard` and `Encrypted` folders.
+     *       `email` is optional, must be unique, and is kept for password resets.
      *     requestBody:
      *       required: true
      *       content:
      *         application/json:
      *           schema: { $ref: "#/components/schemas/SignupBody" }
-     *           example: { username: alice, password: secret123 }
+     *           example: { username: alice, password: secret123, email: alice@example.com }
      *     responses:
      *       200:
      *         description: Account created.
@@ -132,7 +139,7 @@ export = <Controller.Object>{
      *           application/json:
      *             schema: { $ref: "#/components/schemas/MessageResponse" }
      *       400:
-     *         description: Validation error or username already taken.
+     *         description: Validation error, username already taken, or email already in use.
      *         content:
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -142,15 +149,20 @@ export = <Controller.Object>{
      */
     async signup(http) {
         // Get abolish validated body
-        type body = { username: string; password: string };
+        type body = { username: string; password: string; email?: string };
 
         const [err, body] = await http.validateBodyAsync<body>(SignupSchema);
         if (err) return http.abolishError(err);
 
-        const { username, password } = body;
+        const { username, password, email } = body;
+
+        // Email must be unique across accounts (it will be used for password resets).
+        if (email && (await User.exists({ email }))) {
+            return http.error("Email is already associated with another account.", 400, { field: "email" });
+        }
 
         // Make new user
-        const user = User.make(<UserDataType>{ username });
+        const user = User.make(<UserDataType>{ username, ...(email ? { email } : {}) });
 
         // Hash password
         user.data.password = bcrypt.hashSync(password, 10);

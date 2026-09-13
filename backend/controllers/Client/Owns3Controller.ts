@@ -1,20 +1,61 @@
 import type { Controller, Http } from "xpresser/types/http";
 import User, { Owns3Config } from "../../models/User";
 import File from "../../models/File";
-import Owns3, { normalizeOwns3Endpoint, Owns3Error, OWNS3_REQUIRED_PERMISSIONS } from "../../lib/Owns3";
+import Owns3, {
+    defaultOwns3,
+    normalizeOwns3Endpoint,
+    Owns3Error,
+    Owns3Me,
+    Owns3Permission,
+    OWNS3_REQUIRED_PERMISSIONS
+} from "../../lib/Owns3";
 import { encryptSecret } from "../../lib/Crypto";
 
 /** Public view of a user's owns3 connection. Never includes the api key. */
-function toStatus(config?: Owns3Config) {
-    if (!config) return { connected: false as const };
+function toStatus(config?: Owns3Config, plan?: string | null) {
+    const defaultAvailable = defaultOwns3() !== null;
+
+    if (!config) return { connected: false as const, default: false, defaultAvailable };
+
+    // Default storage only works while the user is Pro.
+    if (config.isDefault && plan !== "pro") {
+        return { connected: false as const, default: true, defaultAvailable, proRequired: true };
+    }
 
     return {
         connected: true as const,
+        default: !!config.isDefault,
+        defaultAvailable,
         endpoint: config.endpoint,
         app: config.app,
         permissions: config.permissions,
         connectedAt: config.connectedAt
     };
+}
+
+/** Validate a client against owns3 `/me` and check the required permissions. Returns an error message or the `/me` payload. */
+type Verified = { error: string; status: number } | { me: Owns3Me; permissions: Owns3Permission[] };
+
+async function verifyClient(client: Owns3): Promise<Verified> {
+    let me: Owns3Me;
+    try {
+        me = await client.me();
+    } catch (e: any) {
+        const status = e instanceof Owns3Error ? e.status : 502;
+        return { error: `Could not connect to owns3: ${e.message}`, status };
+    }
+
+    const permissions = me.key?.permissions ?? [];
+    const missing = OWNS3_REQUIRED_PERMISSIONS.filter((p) => !permissions.includes(p));
+
+    if (missing.length) {
+        return {
+            error: `The owns3 api key is missing the [${missing.join(", ")}] permission(s). Create a key with read, write and delete.`,
+            status: 400
+        };
+    }
+
+    return { me, permissions };
 }
 
 /**
@@ -27,7 +68,9 @@ export = <Controller.Object>{
     e: (http: Http, error: string) => http.status(401).json({ error }),
 
     middlewares: {
-        Abolish: ["connect"]
+        Abolish: ["connect"],
+        // The default storage is a Pro perk.
+        IsProUser: ["useDefault"]
     },
 
     /**
@@ -36,7 +79,10 @@ export = <Controller.Object>{
      *   get:
      *     tags: [Files]
      *     summary: owns3 connection status
-     *     description: Whether the user has connected their own owns3 server (https://github.com/ownclipboard/owns3), where their files are stored. Never returns the api key.
+     *     description: |
+     *       Whether the user has a storage connected: their own owns3 server (https://github.com/ownclipboard/owns3)
+     *       or the app's default one (`default: true`). `defaultAvailable` says whether the default option is offered.
+     *       Never returns an api key.
      *     security: [{ ocToken: [] }]
      *     responses:
      *       200:
@@ -89,8 +135,8 @@ export = <Controller.Object>{
      * Connection status.
      */
     async status(http) {
-        const user = await User.findById(http.authUserId(), { projection: { owns3: 1 } });
-        return toStatus(user?.data.owns3);
+        const user = await User.findById(http.authUserId(), { projection: { owns3: 1, plan: 1 } });
+        return toStatus(user?.data.owns3, user?.data.plan);
     },
 
     /**
@@ -107,36 +153,74 @@ export = <Controller.Object>{
             return http.badRequestError(e.message);
         }
 
-        const client = new Owns3(endpoint, apiKey);
-
-        let me;
-        try {
-            me = await client.me();
-        } catch (e: any) {
-            const status = e instanceof Owns3Error ? e.status : 502;
-            return http.error(`Could not connect to owns3: ${e.message}`, status);
-        }
-
-        const permissions = me.key?.permissions ?? [];
-        const missing = OWNS3_REQUIRED_PERMISSIONS.filter((p) => !permissions.includes(p));
-
-        if (missing.length) {
-            return http.badRequestError(
-                `The owns3 api key is missing the [${missing.join(", ")}] permission(s). Create a key with read, write and delete.`
-            );
-        }
+        const verified = await verifyClient(new Owns3(endpoint, apiKey));
+        if ("error" in verified) return http.error(verified.error, verified.status);
 
         const config: Owns3Config = {
             endpoint,
             apiKey: encryptSecret(apiKey),
-            app: me.app,
-            permissions,
+            app: verified.me.app,
+            permissions: verified.permissions,
             connectedAt: new Date()
         };
 
         await User.native().updateOne({ _id: http.authUserId() }, { $set: { owns3: config } });
 
-        return { ...toStatus(config), bucket: me.bucket, message: "owns3 server connected." };
+        return { ...toStatus(config), bucket: verified.me.bucket, message: "owns3 server connected." };
+    },
+
+    /**
+     * @openapi
+     * /client/v1/account/owns3/use-default:
+     *   post:
+     *     tags: [Files]
+     *     summary: Use the app's default storage
+     *     description: |
+     *       Pro only. Connects the user to the owns3 storage operated by OwnClipboard, so they can
+     *       upload files without running their own server. Files are stored under the user's own
+     *       prefix. Replaces any previously connected server. Only available when the status reports
+     *       `defaultAvailable`. If the Pro subscription later expires, the status reports
+     *       `proRequired` and uploads are refused until it is renewed or an own server is connected.
+     *     security: [{ ocToken: [] }]
+     *     responses:
+     *       403:
+     *         description: Not a Pro user.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       200:
+     *         description: Connected to the default storage.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/Owns3ConnectResponse" }
+     *       503:
+     *         description: The default storage is not configured or not reachable.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
+     * Connect the user to the app's default owns3 storage (from env).
+     * Only a marker is stored; endpoint and key are resolved from env on every request.
+     */
+    async useDefault(http) {
+        const client = defaultOwns3();
+        if (!client) return http.error("Default storage is not available on this server.", 503);
+
+        const verified = await verifyClient(client);
+        if ("error" in verified) return http.error(verified.error, 503);
+
+        const config: Owns3Config = {
+            isDefault: true,
+            endpoint: client.endpoint,
+            app: verified.me.app,
+            permissions: verified.permissions,
+            connectedAt: new Date()
+        };
+
+        await User.native().updateOne({ _id: http.authUserId() }, { $set: { owns3: config } });
+
+        return { ...toStatus(config, "pro"), bucket: verified.me.bucket, message: "Connected to the default storage." };
     },
 
     /**
