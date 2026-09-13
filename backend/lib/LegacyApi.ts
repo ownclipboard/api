@@ -6,15 +6,15 @@ import type User from "../models/User";
 import { htmlEntities, nl2br } from "../functions";
 
 /**
- * Helpers of the legacy api served at `/api/old/*`.
+ * Helpers of the legacy api served at `/api/legacy/*`.
  *
  * Everything here exists to reproduce the responses of the first OwnClipboard
  * platform byte for byte, so apps written against `yourdomain.com/api/*` keep
- * working when pointed at `/api/old/*`. Do not "improve" these shapes.
+ * working when pointed at `/api/legacy/*`. Do not "improve" these shapes.
  */
 
 /** Errors of the old api, with the exact type and message strings it used. */
-export const OldApiErrors = {
+export const LegacyApiErrors = {
     apiKeyNotFound: { type: "api_key_not_found", message: `ApiKey not found in request.` },
     apiKeyNotValid: { type: "api_key_not_valid", message: `ApiKey found but not valid.` },
     apiKeyNotConnected: {
@@ -27,36 +27,36 @@ export const OldApiErrors = {
     routeNotFound: { type: "404", message: `Route not found!` }
 };
 
-export type OldApiError = { type: string; message: string };
+export type LegacyApiError = { type: string; message: string };
 
 /** Success envelope: `{status, data}`. */
-export function oldApiData(http: Http, data: Record<string, any>, status: number = 200) {
+export function legacyApiData(http: Http, data: Record<string, any>, status: number = 200) {
     return http.status(status).json({ status, data });
 }
 
 /** Error envelope: `{status, error}`. */
-export function oldApiError(http: Http, error: OldApiError, status: number = 200) {
+export function legacyApiError(http: Http, error: LegacyApiError, status: number = 200) {
     return http.status(status).json({ status, error });
 }
 
 /** What the legacy middleware resolved for the current request. */
-export interface OldApiState {
+export interface LegacyApiState {
     apiKey: string;
     device: Device;
     user: User;
     clip?: Content;
 }
 
-export function setOldApiState(http: Http, state: OldApiState) {
-    http.state.set("oldApi", state);
+export function setLegacyApiState(http: Http, state: LegacyApiState) {
+    http.state.set("legacyApi", state);
 }
 
-export function oldApiState(http: Http): OldApiState {
-    return http.state.get<OldApiState>("oldApi")!;
+export function legacyApiState(http: Http): LegacyApiState {
+    return http.state.get<LegacyApiState>("legacyApi")!;
 }
 
 /** Date in the format the old sqlite/mysql rows were serialised with. */
-export function oldDate(date?: Date | null): string | null {
+export function legacyDate(date?: Date | null): string | null {
     if (!date) return null;
     return date.toISOString().replace("T", " ").slice(0, 19);
 }
@@ -65,7 +65,7 @@ export function oldDate(date?: Date | null): string | null {
  * A clip as the old api returned it: the fields of `Content.jsPick`.
  * `code` is the clip's publicId and `content` its text.
  */
-export function oldClip(clip: ContentDataType) {
+export function legacyClip(clip: ContentDataType) {
     const { publicId, type, context, locked, favorite, createdAt } = clip;
 
     return {
@@ -75,7 +75,7 @@ export function oldClip(clip: ContentDataType) {
         content: context,
         locked: locked ? 1 : 0,
         favorite: favorite ? 1 : 0,
-        created_at: oldDate(createdAt),
+        created_at: legacyDate(createdAt),
         html_formatted: nl2br(htmlEntities(context))
     };
 }

@@ -2,12 +2,12 @@ import type { Controller, Http } from "xpresser/types/http";
 import Content, { ContentDataType } from "../models/Content";
 import { escapeRegexp } from "xpress-mongo/fn/helpers";
 import { oc_stringSize } from "../functions";
-import { OldApiErrors, oldApiData, oldApiError, oldApiState, oldClip } from "../lib/OldApi";
+import { LegacyApiErrors, legacyApiData, legacyApiError, legacyApiState, legacyClip } from "../lib/LegacyApi";
 
 /**
- * OldApiController
+ * LegacyApiController
  *
- * The api of the first OwnClipboard platform, served at `/api/old/*` so apps
+ * The api of the first OwnClipboard platform, served at `/api/legacy/*` so apps
  * built against the old `/api/*` endpoints keep working. Request and response
  * shapes are reproduced exactly, including the `{status, data}` envelope, the
  * `{status, error}` errors and the snake_case clip fields.
@@ -16,7 +16,7 @@ import { OldApiErrors, oldApiData, oldApiError, oldApiState, oldClip } from "../
  */
 export = <Controller.Object>{
     // Controller Name
-    name: "OldApiController",
+    name: "LegacyApiController",
 
     // Controller Default Error Handler.
     e: (http: Http, error: string) =>
@@ -24,7 +24,7 @@ export = <Controller.Object>{
 
     /**
      * @openapi
-     * /api/old/validate:
+     * /api/legacy/validate:
      *   post:
      *     tags: [Legacy]
      *     summary: Validate that this host is an OwnClipboard server
@@ -46,12 +46,12 @@ export = <Controller.Object>{
      *                     allowPublicValidation: { type: boolean, example: true }
      */
     validate(http) {
-        return oldApiData(http, { allowPublicValidation: true });
+        return legacyApiData(http, { allowPublicValidation: true });
     },
 
     /**
      * @openapi
-     * /api/old/connect:
+     * /api/legacy/connect:
      *   post:
      *     tags: [Legacy]
      *     summary: Connect an api key (one time)
@@ -90,7 +90,7 @@ export = <Controller.Object>{
      *             schema: { $ref: "#/components/schemas/LegacyErrorResponse" }
      */
     async connect(http) {
-        const { device, apiKey } = oldApiState(http);
+        const { device, apiKey } = legacyApiState(http);
 
         if (!device.isConnected()) {
             const deviceId = http.body("device_id", undefined) as unknown;
@@ -104,7 +104,7 @@ export = <Controller.Object>{
             await device.save();
         }
 
-        return oldApiData(http, {
+        return legacyApiData(http, {
             name: device.data.name,
             api_key: apiKey,
             hits: device.data.hits,
@@ -114,7 +114,7 @@ export = <Controller.Object>{
 
     /**
      * @openapi
-     * /api/old/all:
+     * /api/legacy/all:
      *   get:
      *     tags: [Legacy]
      *     summary: Get or search clips
@@ -139,7 +139,7 @@ export = <Controller.Object>{
      *             schema: { $ref: "#/components/schemas/LegacyErrorResponse" }
      */
     async all(http) {
-        const { device, user } = oldApiState(http);
+        const { device, user } = legacyApiState(http);
 
         let page = Number(http.query("page", 1));
         if (!page || page < 1) page = 1;
@@ -162,15 +162,15 @@ export = <Controller.Object>{
             sort: { createdAt: -1 }
         });
 
-        return oldApiData(http, {
+        return legacyApiData(http, {
             search,
-            clips: { ...clips, data: clips.data.map(oldClip) }
+            clips: { ...clips, data: clips.data.map(legacyClip) }
         });
     },
 
     /**
      * @openapi
-     * /api/old/add:
+     * /api/legacy/add:
      *   post:
      *     tags: [Legacy]
      *     summary: Add a clip
@@ -208,12 +208,12 @@ export = <Controller.Object>{
      *             schema: { $ref: "#/components/schemas/LegacyErrorResponse" }
      */
     async add(http) {
-        const { device, user } = oldApiState(http);
+        const { device, user } = legacyApiState(http);
 
         const text = http.body("content", undefined) as unknown;
 
         if (typeof text !== "string" || !text.trim().length) {
-            return oldApiError(http, OldApiErrors.emptyContent, 422);
+            return legacyApiError(http, LegacyApiErrors.emptyContent, 422);
         }
 
         const context = text.trim();
@@ -238,12 +238,12 @@ export = <Controller.Object>{
             await clip.save();
         }
 
-        return oldApiData(http, { content: oldClip(clip.data), exists });
+        return legacyApiData(http, { content: legacyClip(clip.data), exists });
     },
 
     /**
      * @openapi
-     * /api/old/delete:
+     * /api/legacy/delete:
      *   delete:
      *     tags: [Legacy]
      *     summary: Delete a clip
@@ -279,19 +279,19 @@ export = <Controller.Object>{
      *             schema: { $ref: "#/components/schemas/LegacyErrorResponse" }
      */
     async delete(http) {
-        const { clip } = oldApiState(http);
+        const { clip } = legacyApiState(http);
 
         // The middleware refuses the request when no clip is given.
         const code = clip!.data.publicId;
         await clip!.delete();
 
-        return oldApiData(http, { deleted: true, code });
+        return legacyApiData(http, { deleted: true, code });
     },
 
     /**
-     * Anything else under /api/old.
+     * Anything else under /api/legacy.
      */
     notFound(http) {
-        return oldApiError(http, OldApiErrors.routeNotFound, 404);
+        return legacyApiError(http, LegacyApiErrors.routeNotFound, 404);
     }
 };

@@ -114,12 +114,12 @@ r.path("/client/v1/", () => {
 
 /**
  * Legacy api of the first OwnClipboard platform, kept so old apps keep working.
- * Same paths, same responses, only moved under "/api/old".
+ * Same paths, same responses, only moved under "/api/legacy".
  * Authenticated with a device api key, never with the jwt.
  */
-r.post("/api/old/validate", "OldApi@validate");
+r.post("/api/legacy/validate", "LegacyApi@validate");
 
-r.path("/api/old", () => {
+r.path("/api/legacy", () => {
     r.post("@connect");
     r.get("@all");
     r.post("@add");
@@ -128,8 +128,8 @@ r.path("/api/old", () => {
     // Unknown legacy route.
     r.any("*", "notFound");
 })
-    .controller("OldApi")
-    .middlewares(["OldApi"]);
+    .controller("LegacyApi")
+    .middlewares(["LegacyApi"]);
 
 /**
  * Payment provider webhooks.
