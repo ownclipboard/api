@@ -4,25 +4,13 @@ import File, { FileDataType } from "../../models/File";
 import Folder, { FolderDataType } from "../../models/Folder";
 import Content, { ContentDataType } from "../../models/Content";
 import { Owns3Error, owns3ForUser } from "../../lib/Owns3";
-import { destroyFile } from "../../lib/Files";
+import { destroyFile, FILE_CLIP_CONTEXT } from "../../lib/Files";
 import { oc_fileSizeToString } from "../../functions";
 import { oc_nanoidStripped } from "../../functions/string.fn";
 import slugify from "slugify";
 
 const UPLOAD_URL_TTL = 3600;
 const DOWNLOAD_URL_TTL = 3600;
-
-/** Make a file name safe to use as an object key segment. */
-function safeFileName(name: string) {
-    const cleaned = name
-        .trim()
-        .replace(/[\\/]+/g, "_")
-        .replace(/[^\w.\-() ]+/g, "_")
-        .replace(/\s+/g, " ")
-        .slice(0, 150);
-
-    return cleaned || "file";
-}
 
 function owns3Error(http: Http, e: any) {
     if (e instanceof Owns3Error) return http.error(e.message, e.status);
@@ -55,7 +43,7 @@ export = <Controller.Object<{ authId: ObjectId; file: File }>>{
      *       Step 1 of 3. Requires a connected owns3 server. Creates a pending file record and
      *       returns a presigned url. Step 2: `PUT` the raw file body to `upload.url` with the returned
      *       headers (no api key needed). Step 3: call confirm. Encrypted folders are refused.
-     *       The clip's title is `title` when given, otherwise the file name; its content is always the file name.
+     *       The clip's title is `title` when given, otherwise the file name; its content is always "File Clip".
      *     security: [{ ocToken: [] }]
      *     requestBody:
      *       required: true
@@ -102,9 +90,10 @@ export = <Controller.Object<{ authId: ObjectId; file: File }>>{
         if (!$folder) return http.error(`No folder with name: '${folder}'`, 404);
         if ($folder.isEncrypted()) return http.badRequestError("Files cannot be uploaded into an encrypted folder.");
 
+        // Object key on owns3 is random: <userId>/<fileId>.<ext>. The real name only lives in our records.
         const publicId = oc_nanoidStripped(21);
-        const userPublicId = http.authData().publicId;
-        const path = `${userPublicId}/${publicId}/${safeFileName(name)}`;
+        const ext = File.extensionOf(name);
+        const path = `${http.authData().publicId}/${publicId}${ext ? `.${ext}` : ""}`;
 
         const file = File.make(<Partial<FileDataType>>{
             publicId,
@@ -112,7 +101,7 @@ export = <Controller.Object<{ authId: ObjectId; file: File }>>{
             folder: $folder.data.slug,
             name: name.trim(),
             title: (title ?? "").trim() || name.trim(),
-            ext: File.extensionOf(name),
+            ext,
             path,
             size: size ?? 0,
             contentType: contentType || "application/octet-stream",
@@ -147,7 +136,7 @@ export = <Controller.Object<{ authId: ObjectId; file: File }>>{
      *     summary: Confirm an upload
      *     description: |
      *       Step 3 of 3. Verifies the object exists on owns3, records its real size and type, and
-     *       creates a clip of type `file` whose `file` field holds the file id and extension. Calling it again
+     *       creates a clip of type `file` (content "File Clip") whose `file` field holds the file id and extension. Calling it again
      *       returns the existing clip with `info`.
      *     security: [{ ocToken: [] }]
      *     parameters:
@@ -202,7 +191,7 @@ export = <Controller.Object<{ authId: ObjectId; file: File }>>{
         const clip = Content.make(<ContentDataType>{
             userId,
             title: file.data.title || file.data.name,
-            context: file.data.name,
+            context: FILE_CLIP_CONTEXT,
             type: "file",
             folder: folder.data.slug,
             size: { bytes: stat.size, human: oc_fileSizeToString(stat.size) },

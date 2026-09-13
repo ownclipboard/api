@@ -82,12 +82,15 @@ async function transferClips(http: Http, userId: ObjectId, mode: "copy" | "move"
             continue;
         }
 
-        // Merge with an identical clip already in the target folder.
-        const existing = await Content.findOne(<ContentDataType>{
-            userId,
-            folder: target.data.slug,
-            context: clip.data.context
-        });
+        // Merge with an identical clip already in the target folder (file clips never merge).
+        const existing = clip.isFile()
+            ? null
+            : await Content.findOne({
+                  userId,
+                  folder: target.data.slug,
+                  context: clip.data.context,
+                  fileId: { $exists: false }
+              });
 
         if (existing) {
             existing.data.updatedAt = new Date();
@@ -256,7 +259,7 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         // Check if content already exists if folder is not encrypted.
         let content = $folder.isEncrypted()
             ? null
-            : await Content.findOne(<ContentDataType>{ userId, context, folder });
+            : await Content.findOne({ userId, context, folder, fileId: { $exists: false } });
 
         // If content already exists, update updateAt date.
         if (content) {
@@ -327,9 +330,10 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         const commonFolderData = { userId: folder.data.userId, folder: folder.data.slug };
 
         // Check if content already exists if folder is not encrypted.
-        let content = await Content.findOne(<ContentDataType>{
+        let content = await Content.findOne({
             context,
-            ...commonFolderData
+            ...commonFolderData,
+            fileId: { $exists: false }
         });
 
         // If content already exists, update updateAt date.

@@ -23,7 +23,7 @@ export interface FileDataType {
     title: string;
     /** Lower-cased extension without the dot, e.g. `png`. Empty when the name has none. */
     ext: string;
-    /** Object path on owns3, relative to the app folder. */
+    /** Object key on owns3, relative to the app folder: `<userPublicId>/<publicId>.<ext>`. Never the original name. */
     path: string;
     /** Bytes, as reported by owns3 after upload (declared size before that). */
     size: number;

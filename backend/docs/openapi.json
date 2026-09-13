@@ -343,11 +343,11 @@
           },
           "context": {
             "type": "string",
-            "description": "The clip content. Ciphertext when `encrypted` is true. The file name for file clips."
+            "description": "The clip content. Ciphertext when `encrypted` is true. Always \"File Clip\" for file clips."
           },
           "file": {
             "$ref": "#/components/schemas/FileSummary",
-            "description": "Present on file clips (`type` is `file`). Name is in `context`, size in the clip's size."
+            "description": "Present on file clips (`type` is `file`). The file name is the default title; size is on the clip."
           },
           "locked": {
             "type": [
@@ -2221,7 +2221,7 @@
           "Files"
         ],
         "summary": "Request an upload slot",
-        "description": "Step 1 of 3. Requires a connected owns3 server. Creates a pending file record and\nreturns a presigned url. Step 2: `PUT` the raw file body to `upload.url` with the returned\nheaders (no api key needed). Step 3: call confirm. Encrypted folders are refused.\nThe clip's title is `title` when given, otherwise the file name; its content is always the file name.\n",
+        "description": "Step 1 of 3. Requires a connected owns3 server. Creates a pending file record and\nreturns a presigned url. Step 2: `PUT` the raw file body to `upload.url` with the returned\nheaders (no api key needed). Step 3: call confirm. Encrypted folders are refused.\nThe clip's title is `title` when given, otherwise the file name; its content is always \"File Clip\".\n",
         "security": [
           {
             "ocToken": []
@@ -2294,7 +2294,7 @@
           "Files"
         ],
         "summary": "Confirm an upload",
-        "description": "Step 3 of 3. Verifies the object exists on owns3, records its real size and type, and\ncreates a clip of type `file` whose `file` field holds the file id and extension. Calling it again\nreturns the existing clip with `info`.\n",
+        "description": "Step 3 of 3. Verifies the object exists on owns3, records its real size and type, and\ncreates a clip of type `file` (content \"File Clip\") whose `file` field holds the file id and extension. Calling it again\nreturns the existing clip with `info`.\n",
         "security": [
           {
             "ocToken": []

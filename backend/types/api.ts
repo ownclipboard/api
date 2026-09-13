@@ -74,9 +74,9 @@ export interface Clip {
     type: "text" | "url" | "html" | "file";
     /** Slug of the folder the clip is in. */
     folder: string;
-    /** The clip content. Ciphertext when `encrypted` is true. The file name for file clips. */
+    /** The clip content. Ciphertext when `encrypted` is true. Always "File Clip" for file clips. */
     context: string;
-    /** Present on file clips (`type` is `file`). Name is in `context`, size in the clip's size. */
+    /** Present on file clips (`type` is `file`). The file name is the default title; size is on the clip. */
     file?: FileSummary;
     locked?: boolean | null;
     favorite?: boolean | null;

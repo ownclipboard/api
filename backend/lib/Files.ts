@@ -2,6 +2,9 @@ import type Owns3 from "./Owns3";
 import File from "../models/File";
 import Content from "../models/Content";
 
+/** Fixed `context` of every file clip. The file name lives in the title and on the file record. */
+export const FILE_CLIP_CONTEXT = "File Clip";
+
 /**
  * Delete a file everywhere: the object on owns3, its clip and its record.
  */
