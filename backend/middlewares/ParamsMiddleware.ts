@@ -1,6 +1,7 @@
 import { ParamsMiddleware } from "@xpresser/params-loader";
 import Folder, { FolderDataType } from "../models/Folder";
 import Content, { ContentDataType } from "../models/Content";
+import File, { FileDataType } from "../models/File";
 
 // Define your params
 export = ParamsMiddleware({
@@ -32,6 +33,14 @@ export = ParamsMiddleware({
             // If clip is not found then return 404
             return http.error(`Clip with id: '${clip}' not found!`, 404);
         }
+    },
+
+    file: {
+        addToBoot: true,
+        load: (publicId, http) => {
+            return File.findOne(<FileDataType>{ publicId, userId: http.authUserId() });
+        },
+        notFound: (http, file) => http.error(`File with id: '${file}' not found!`, 404)
     },
 
     pasteId: {

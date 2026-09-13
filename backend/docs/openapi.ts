@@ -49,6 +49,7 @@ export function buildOpenApiSpec(): Record<string, any> {
                 { name: "Subscription", description: "Pro plan subscriptions paid through NowPayments." },
                 { name: "Folders", description: "Folders that group clips." },
                 { name: "Clips", description: "Clipboard contents." },
+                { name: "Files", description: "Files stored on the user's own owns3 server, represented as file clips." },
                 { name: "Public", description: "Endpoints that need no authentication (public paste)." }
             ],
             components: {

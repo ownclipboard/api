@@ -3,6 +3,9 @@ import Folder, { FolderDataType } from "../../models/Folder";
 import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid"
 import Content from "../../models/Content";
+import File from "../../models/File";
+import { owns3ForUser } from "../../lib/Owns3";
+import { destroyFile } from "../../lib/Files";
 
 /**
  * FolderController
@@ -336,6 +339,22 @@ export = <Controller.Object<{ folder: Folder }>>{
             return http.badRequestError(
                 `Folder ${folder.data.name} cannot be deleted! It is the default folder.`
             );
+        }
+
+        // Files in this folder: delete their objects on owns3 first.
+        const files = File.fromArray(
+            await File.find({ userId: folder.data.userId, folder: folder.data.slug })
+        );
+
+        if (files.length) {
+            const owns3 = await owns3ForUser(folder.data.userId);
+            if (!owns3) {
+                return http.badRequestError(
+                    `Folder has ${files.length} file(s). Connect your owns3 server to delete it.`
+                );
+            }
+
+            for (const file of files) await destroyFile(file, owns3);
         }
 
         await Content.native().deleteMany({

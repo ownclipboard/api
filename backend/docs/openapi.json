@@ -33,6 +33,10 @@
       "description": "Clipboard contents."
     },
     {
+      "name": "Files",
+      "description": "Files stored on the user's own owns3 server, represented as file clips."
+    },
+    {
       "name": "Public",
       "description": "Endpoints that need no authentication (public paste)."
     }
@@ -330,7 +334,7 @@
               "text",
               "url",
               "html",
-              "image"
+              "file"
             ]
           },
           "folder": {
@@ -339,7 +343,11 @@
           },
           "context": {
             "type": "string",
-            "description": "The clip content. Ciphertext when `encrypted` is true."
+            "description": "The clip content. Ciphertext when `encrypted` is true. The file name for file clips."
+          },
+          "file": {
+            "$ref": "#/components/schemas/FileSummary",
+            "description": "Present on file clips (`type` is `file`). Name is in `context`, size in the clip's size."
           },
           "locked": {
             "type": [
@@ -371,6 +379,24 @@
         ],
         "additionalProperties": false,
         "description": "Public view of a clip."
+      },
+      "FileSummary": {
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "ext": {
+            "type": "string",
+            "description": "Lower-cased extension without the dot, empty when none."
+          }
+        },
+        "required": [
+          "publicId",
+          "ext"
+        ],
+        "additionalProperties": false,
+        "description": "File reference embedded in a clip."
       },
       "PaginatedClips": {
         "type": "object",
@@ -446,7 +472,8 @@
         "enum": [
           "not_found",
           "encrypted",
-          "same_folder"
+          "same_folder",
+          "file"
         ]
       },
       "TransferSkipped": {
@@ -964,6 +991,313 @@
           "content"
         ],
         "additionalProperties": false
+      },
+      "Owns3ConnectBody": {
+        "type": "object",
+        "properties": {
+          "endpoint": {
+            "type": "string",
+            "description": "Base url of the owns3 server, e.g. `https://owns3.example.com`."
+          },
+          "apiKey": {
+            "type": "string",
+            "description": "Application api key with read, write and delete permissions."
+          }
+        },
+        "required": [
+          "endpoint",
+          "apiKey"
+        ],
+        "additionalProperties": false
+      },
+      "Owns3App": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "folder": {
+            "type": "string",
+            "description": "Folder prefix the app is confined to."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "folder"
+        ],
+        "additionalProperties": false
+      },
+      "Owns3Status": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "app": {
+            "$ref": "#/components/schemas/Owns3App"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "read",
+                "write",
+                "delete"
+              ]
+            }
+          },
+          "connectedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "connected"
+        ],
+        "additionalProperties": false
+      },
+      "Owns3ConnectResponse": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean"
+          },
+          "endpoint": {
+            "type": "string"
+          },
+          "app": {
+            "$ref": "#/components/schemas/Owns3App"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "read",
+                "write",
+                "delete"
+              ]
+            }
+          },
+          "connectedAt": {
+            "type": "string"
+          },
+          "bucket": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "bucket",
+          "connected",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "Owns3DisconnectResponse": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean",
+            "const": false
+          },
+          "files": {
+            "type": "number",
+            "description": "Uploaded files that stay on the server and become unavailable."
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "connected",
+          "files",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "File": {
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "ext": {
+            "type": "string",
+            "description": "Lower-cased extension without the dot, empty when none."
+          },
+          "folder": {
+            "type": "string",
+            "description": "Slug of the folder the clip lives in."
+          },
+          "size": {
+            "type": "number",
+            "description": "Bytes. Declared size until confirmed, then the real size."
+          },
+          "contentType": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "pending",
+              "uploaded"
+            ]
+          },
+          "createdAt": {
+            "type": "string"
+          },
+          "uploadedAt": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "publicId",
+          "name",
+          "ext",
+          "folder",
+          "size",
+          "contentType",
+          "status",
+          "createdAt"
+        ],
+        "additionalProperties": false,
+        "description": "Public view of a file record."
+      },
+      "FileUploadBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Original file name, up to 255 characters."
+          },
+          "contentType": {
+            "type": "string",
+            "description": "MIME type, defaults to application/octet-stream."
+          },
+          "size": {
+            "type": "number",
+            "description": "Declared size in bytes, informational."
+          },
+          "folder": {
+            "type": "string",
+            "description": "Target folder name or slug. Defaults to clipboard. Encrypted folders are refused."
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "FileUploadResponse": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "$ref": "#/components/schemas/File"
+          },
+          "upload": {
+            "type": "object",
+            "properties": {
+              "method": {
+                "type": "string",
+                "const": "PUT"
+              },
+              "url": {
+                "type": "string",
+                "description": "Presigned S3 url. PUT the raw file body here with the given headers."
+              },
+              "expiresIn": {
+                "type": "number"
+              },
+              "headers": {
+                "type": "object",
+                "properties": {
+                  "Content-Type": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "Content-Type"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "method",
+              "url",
+              "expiresIn",
+              "headers"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "file",
+          "upload"
+        ],
+        "additionalProperties": false
+      },
+      "FileConfirmResponse": {
+        "type": "object",
+        "properties": {
+          "file": {
+            "$ref": "#/components/schemas/File"
+          },
+          "clip": {
+            "$ref": "#/components/schemas/Clip"
+          },
+          "message": {
+            "type": "string"
+          },
+          "info": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "file"
+        ],
+        "additionalProperties": false
+      },
+      "FileUrlResponse": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "description": "Presigned download url."
+          },
+          "method": {
+            "type": "string",
+            "const": "GET"
+          },
+          "expiresIn": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "url",
+          "method",
+          "expiresIn"
+        ],
+        "additionalProperties": false
       }
     }
   },
@@ -1296,6 +1630,146 @@
           },
           "400": {
             "description": "Invalid username.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/account/owns3": {
+      "get": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "owns3 connection status",
+        "description": "Whether the user has connected their own owns3 server (https://github.com/ownclipboard/owns3), where their files are stored. Never returns the api key.",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Connection status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Owns3Status"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `oc_token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Connect an owns3 server",
+        "description": "Validates the endpoint and api key against owns3 `/api/v1/me`. The key must carry the\n`read`, `write` and `delete` permissions. Replaces any previous connection.\nThe key is stored encrypted.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Owns3ConnectBody"
+              },
+              "example": {
+                "endpoint": "https://owns3.example.com",
+                "apiKey": "owns3_xxx"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Connected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Owns3ConnectResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid endpoint or the key lacks a required permission.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "owns3 rejected the api key.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "The owns3 endpoint could not be reached.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/account/owns3/disconnect": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Disconnect the owns3 server",
+        "description": "Removes the stored endpoint and key. Uploaded files stay on the server but cannot be downloaded or deleted until a server is connected again.",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Disconnected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Owns3DisconnectResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No server connected.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1749,6 +2223,249 @@
         }
       }
     },
+    "/client/v1/files/upload": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Request an upload slot",
+        "description": "Step 1 of 3. Requires a connected owns3 server. Creates a pending file record and\nreturns a presigned url. Step 2: `PUT` the raw file body to `upload.url` with the returned\nheaders (no api key needed). Step 3: call confirm. Encrypted folders are refused.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FileUploadBody"
+              },
+              "example": {
+                "name": "photo.jpg",
+                "contentType": "image/jpeg",
+                "size": 204800,
+                "folder": "clipboard"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upload slot.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileUploadResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No owns3 server connected, validation error, or encrypted folder.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Folder not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "owns3 could not be reached or refused the request.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/file/{file}/confirm": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Confirm an upload",
+        "description": "Step 3 of 3. Verifies the object exists on owns3, records its real size and type, and\ncreates a clip of type `file` whose `file` field holds the file id and extension. Calling it again\nreturns the existing clip with `info`.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "File publicId."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File confirmed and clip created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileConfirmResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not uploaded yet, no owns3 server connected, or the folder no longer exists.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/file/{file}/url": {
+      "get": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Temporary download url",
+        "description": "Presigned url valid for one hour, fetched directly from the user's storage without an api key.",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "File publicId."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Download url.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileUrlResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Not uploaded yet or no owns3 server connected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/file/{file}/delete": {
+      "post": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "Delete a file",
+        "description": "Deletes the object on owns3, the file record and its clip. Deleting a file clip through the clip delete endpoint does the same.",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "File publicId."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No owns3 server connected.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/client/v1/clips/find": {
       "post": {
         "tags": [
@@ -2133,7 +2850,7 @@
           "Clips"
         ],
         "summary": "Copy clips into another folder (Pro)",
-        "description": "Copies up to 100 clips into a folder. Requires an active Pro subscription.\n\n- The target folder must belong to the user and must not be encrypted.\n- Clips in encrypted folders are skipped (`encrypted`).\n- Clips already in the target folder are skipped (`same_folder`).\n- If the target already holds a clip with identical content it is merged:\n  the existing clip is touched instead of creating a duplicate.\n",
+        "description": "Copies up to 100 clips into a folder. Requires an active Pro subscription.\n\n- The target folder must belong to the user and must not be encrypted.\n- Clips in encrypted folders are skipped (`encrypted`).\n- Clips already in the target folder are skipped (`same_folder`).\n- File clips are skipped (`file`): owns3 has no server-side copy. Move them instead.\n- If the target already holds a clip with identical content it is merged:\n  the existing clip is touched instead of creating a duplicate.\n",
         "security": [
           {
             "ocToken": []

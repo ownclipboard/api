@@ -1,4 +1,4 @@
-import { CreateIndex, is, ObjectId, XMongoSchema } from "xpress-mongo";
+import { CreateIndex, is, joi, ObjectId, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
 import BaseModel from "./BaseModel";
 import Folder from "./Folder";
@@ -33,6 +33,20 @@ export interface UserDataType {
      *  - User is banned
      */
     loginToken: string;
+
+    /**
+     * The user's own owns3 server, where their files are stored.
+     * `apiKey` is encrypted at rest (see lib/Crypto).
+     */
+    owns3?: Owns3Config;
+}
+
+export interface Owns3Config {
+    endpoint: string;
+    apiKey: string;
+    app: { id: string; name: string; slug: string; folder: string };
+    permissions: string[];
+    connectedAt: Date;
 }
 
 class User extends BaseModel {
@@ -46,7 +60,23 @@ class User extends BaseModel {
         email: is.String().optional(),
         joinedAt: is.Date().required(),
         plan: is.InArray(["free", "pro"]).optional(),
-        loginToken: is.String(() => oc_nanoid(21)).required()
+        loginToken: is.String(() => oc_nanoid(21)).required(),
+        owns3: joi
+            .object({
+                endpoint: joi.string().required(),
+                apiKey: joi.string().required(),
+                app: joi
+                    .object({
+                        id: joi.string().required(),
+                        name: joi.string().required(),
+                        slug: joi.string().required(),
+                        folder: joi.string().allow("").required()
+                    })
+                    .required(),
+                permissions: joi.array().items(joi.string()).required(),
+                connectedAt: joi.date().required()
+            })
+            .optional()
     };
 
     static publicFields = ["username", "publicId", "email", "joinedAt", "plan"];

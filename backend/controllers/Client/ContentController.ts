@@ -9,8 +9,11 @@ import { skipIfUndefined } from "abolish/src/helpers";
 import { oc_stringSize } from "../../functions";
 import { oc_uniqueStringArray } from "../../functions/string.fn";
 import slugify from "slugify";
+import File from "../../models/File";
+import { Owns3Error, owns3ForUser } from "../../lib/Owns3";
+import { destroyFile } from "../../lib/Files";
 
-type TransferSkipReason = "not_found" | "encrypted" | "same_folder";
+type TransferSkipReason = "not_found" | "encrypted" | "same_folder" | "file";
 
 /**
  * Copy or move clips into another folder.
@@ -19,6 +22,7 @@ type TransferSkipReason = "not_found" | "encrypted" | "same_folder";
  *  - target folder must belong to the user and must not be encrypted
  *  - clips in encrypted folders are skipped (their content is ciphertext)
  *  - clips already in the target folder are skipped
+ *  - file clips cannot be copied (owns3 has no server-side copy), only moved
  *  - if the target already has a clip with identical content, it is merged:
  *    the existing clip is touched and, on move, the source is deleted
  */
@@ -72,6 +76,11 @@ async function transferClips(http: Http, userId: ObjectId, mode: "copy" | "move"
 
         if (clip.data.folder === target.data.slug) {
             skipped.push({ id, reason: "same_folder" });
+            continue;
+        }
+
+        if (mode === "copy" && clip.isFile()) {
+            skipped.push({ id, reason: "file" });
             continue;
         }
 
@@ -519,6 +528,7 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
      *       - The target folder must belong to the user and must not be encrypted.
      *       - Clips in encrypted folders are skipped (`encrypted`).
      *       - Clips already in the target folder are skipped (`same_folder`).
+     *       - File clips are skipped (`file`): owns3 has no server-side copy. Move them instead.
      *       - If the target already holds a clip with identical content it is merged:
      *         the existing clip is touched instead of creating a duplicate.
      *     security: [{ ocToken: [] }]
@@ -761,13 +771,32 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
      */
-    async delete(http, { clip }) {
+    async delete(http, { authId, clip }) {
         if (clip.data.encrypted) {
             const folder = (await clip.folder())!;
             const { password } = http.validatedBody<{ password: string }>();
 
             if (!folder.matchPassword(password))
                 return http.badRequestError(`Incorrect password for folder: ${folder.data.name}`);
+        }
+
+        // File clips: remove the object from owns3 and the file record too.
+        if (clip.isFile()) {
+            const file = await File.findById(clip.data.fileId!);
+
+            if (file) {
+                const owns3 = await owns3ForUser(authId);
+                if (!owns3) return http.badRequestError("Connect your owns3 server to delete files.");
+
+                try {
+                    await destroyFile(file, owns3);
+                } catch (e: any) {
+                    if (e instanceof Owns3Error) return http.error(e.message, e.status);
+                    throw e;
+                }
+
+                return { message: "Clip deleted successfully!" };
+            }
         }
 
         await clip.delete();

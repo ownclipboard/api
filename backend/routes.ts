@@ -60,6 +60,24 @@ r.path("/client/v1/", () => {
         }).middlewares(["Auth.validateToken", "params.folder"]);
     });
 
+    r.path("account/owns3", () => {
+        r.get("=status");
+        r.post("=connect");
+        r.post("@disconnect");
+    }).controller("Client/Owns3").middlewares(["Auth.validateToken"]);
+
+    r.useController("Client/File", () => {
+        r.path("files", () => {
+            r.post("@upload");
+        }).middlewares(["Auth.validateToken"]);
+
+        r.path("file/:file", () => {
+            r.post("@confirm");
+            r.get("@url");
+            r.post("@delete");
+        }).middlewares(["Auth.validateToken", "params.file"]);
+    });
+
     r.path("account", () => {
         r.post("@setPlan");
 

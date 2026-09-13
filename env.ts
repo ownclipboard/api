@@ -33,6 +33,11 @@ const env = Env(envFile, {
 
     WEBHOOK_URL: Env.is.string("http://localhost:3003"),
     FRONTEND_URL: Env.is.string("http://localhost:3000"),
+
+    // owns3 (https://github.com/ownclipboard/owns3) test server, used only by
+    // local tests to exercise the file upload flow. Users connect their own in the app.
+    OWNS3_TEST_ENDPOINT: Env.optional.string("https://owns3.ownclipboard.com"),
+    OWNS3_TEST_API_KEY: Env.optional.string(),
 })
 
 // Declare isDev

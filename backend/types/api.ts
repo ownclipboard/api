@@ -71,11 +71,13 @@ export interface CancelSubscriptionResponse {
 export interface Clip {
     publicId: string;
     title?: string;
-    type: "text" | "url" | "html" | "image";
+    type: "text" | "url" | "html" | "file";
     /** Slug of the folder the clip is in. */
     folder: string;
-    /** The clip content. Ciphertext when `encrypted` is true. */
+    /** The clip content. Ciphertext when `encrypted` is true. The file name for file clips. */
     context: string;
+    /** Present on file clips (`type` is `file`). Name is in `context`, size in the clip's size. */
+    file?: FileSummary;
     locked?: boolean | null;
     favorite?: boolean | null;
     encrypted?: boolean | null;
@@ -103,7 +105,7 @@ export interface TransferClipsBody {
     folder: string;
 }
 
-export type TransferSkipReason = "not_found" | "encrypted" | "same_folder";
+export type TransferSkipReason = "not_found" | "encrypted" | "same_folder" | "file";
 
 export interface TransferSkipped {
     id: string;
@@ -271,4 +273,102 @@ export interface UploadImageResponse {
     message: string;
     /** Raw upload result. */
     content: Record<string, any>;
+}
+
+// ---------------------------------------------------------------------------
+// owns3 & files
+// ---------------------------------------------------------------------------
+
+export interface Owns3ConnectBody {
+    /** Base url of the owns3 server, e.g. `https://owns3.example.com`. */
+    endpoint: string;
+    /** Application api key with read, write and delete permissions. */
+    apiKey: string;
+}
+
+export interface Owns3App {
+    id: string;
+    name: string;
+    slug: string;
+    /** Folder prefix the app is confined to. */
+    folder: string;
+}
+
+export interface Owns3Status {
+    connected: boolean;
+    endpoint?: string;
+    app?: Owns3App;
+    permissions?: ("read" | "write" | "delete")[];
+    connectedAt?: string;
+}
+
+export interface Owns3ConnectResponse extends Owns3Status {
+    bucket: string;
+    message: string;
+}
+
+export interface Owns3DisconnectResponse {
+    connected: false;
+    /** Uploaded files that stay on the server and become unavailable. */
+    files: number;
+    message: string;
+}
+
+/** File reference embedded in a clip. */
+export interface FileSummary {
+    publicId: string;
+    /** Lower-cased extension without the dot, empty when none. */
+    ext: string;
+}
+
+/** Public view of a file record. */
+export interface File {
+    publicId: string;
+    name: string;
+    /** Lower-cased extension without the dot, empty when none. */
+    ext: string;
+    /** Slug of the folder the clip lives in. */
+    folder: string;
+    /** Bytes. Declared size until confirmed, then the real size. */
+    size: number;
+    contentType: string;
+    status: "pending" | "uploaded";
+    createdAt: string;
+    uploadedAt?: string | null;
+}
+
+export interface FileUploadBody {
+    /** Original file name, up to 255 characters. */
+    name: string;
+    /** MIME type, defaults to application/octet-stream. */
+    contentType?: string;
+    /** Declared size in bytes, informational. */
+    size?: number;
+    /** Target folder name or slug. Defaults to clipboard. Encrypted folders are refused. */
+    folder?: string;
+}
+
+export interface FileUploadResponse {
+    file: File;
+    upload: {
+        method: "PUT";
+        /** Presigned S3 url. PUT the raw file body here with the given headers. */
+        url: string;
+        expiresIn: number;
+        headers: { "Content-Type": string };
+    };
+}
+
+export interface FileConfirmResponse {
+    file: File;
+    clip?: Clip;
+    message?: string;
+    info?: string;
+}
+
+export interface FileUrlResponse {
+    /** Presigned download url. */
+    url: string;
+    method: "GET";
+    expiresIn: number;
 }

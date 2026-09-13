@@ -84,6 +84,20 @@ const transferClipsRules = (http: any) => ({
 validate.post("Client/Content@copy", transferClipsRules);
 validate.post("Client/Content@move", transferClipsRules);
 
+// Validate owns3 connect
+validate.post("Client/Owns3@connect", {
+    endpoint: [isStringRequired, "maxLength:500"],
+    apiKey: [isStringRequired, "maxLength:500"]
+});
+
+// Validate file upload slot request
+validate.post("Client/File@upload", (http) => ({
+    name: [isStringRequired, "maxLength:255"],
+    contentType: skipIfUndefined([isString, "maxLength:255"]),
+    size: skipIfUndefined("number|min:0"),
+    folder: ["default:clipboard", isStringRequired, { setAuthId: http.authUserId() }, "FolderExists"]
+}));
+
 validate.post("Client/Content@find", {
     ids: $joi((joi) => joi.array().required().items(joi.string().label("ids.*")).label("ids"))
 });

@@ -18,7 +18,7 @@ export interface ContentDataType {
     userId: ObjectId;
     publicId: string;
     title: string;
-    type: "text" | "url" | "html" | "image";
+    type: "text" | "url" | "html" | "file";
     folder: "clipboard" | "encrypted" | string;
     visibility: "public" | "private" | "encrypted";
     publicPaste?: boolean;
@@ -28,6 +28,10 @@ export interface ContentDataType {
     password?: string;
     locked: boolean;
     favorite: boolean;
+    /** Set on file clips: reference to the `files` collection. */
+    fileId?: ObjectId;
+    /** File clips only: the file reference and its extension (name and size live on the clip). */
+    file?: { publicId: string; ext: string };
     updatedAt?: Date;
     createdAt: Date;
 }
@@ -56,6 +60,14 @@ class Content extends BaseModel {
         favorite: is.Boolean().undefined(),
         publicPaste: is.Boolean().undefined(),
 
+        fileId: is.ObjectId(),
+        file: joi
+            .object({
+                publicId: joi.string().required(),
+                ext: joi.string().allow("").required()
+            })
+            .optional(),
+
         updatedAt: is.Date(),
         createdAt: is.Date().required()
     };
@@ -69,11 +81,16 @@ class Content extends BaseModel {
         "locked",
         "favorite",
         "updatedAt",
-        "encrypted"
+        "encrypted",
+        "file"
     ];
 
     // SET Type of this.data.
     public data!: ContentDataType;
+
+    isFile() {
+        return !!this.data.fileId;
+    }
 
     folder(options?: any) {
         return Folder.findOne(
