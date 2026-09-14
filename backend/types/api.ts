@@ -149,8 +149,22 @@ export interface AuthUser {
 
 export interface PingResponse {
     user: AuthUser | null;
+    /** File storage of the account, for deciding whether to offer uploads. */
+    storage: StorageSummary;
     /** Latest active subscription, if any. */
     subscription?: Subscription;
+}
+
+/** Short view of the user's file storage. The full view is `GET account/owns3`. */
+export interface StorageSummary {
+    /** Whether files can be uploaded right now. */
+    connected: boolean;
+    /** True when the storage in use is the app's default one, not the user's own server. */
+    default: boolean;
+    /** Whether this server offers a default storage at all. */
+    defaultAvailable: boolean;
+    /** Set when the user picked the default storage but is no longer Pro. `connected` is false until they renew or connect their own server. */
+    proRequired?: boolean;
 }
 
 export interface LoginBody {

@@ -167,7 +167,7 @@ export default Owns3;
 // ---------------------------------------------------------------------------
 // Per-user helper
 // ---------------------------------------------------------------------------
-import User from "../models/User";
+import User, { Owns3Config } from "../models/User";
 import type { ObjectId } from "xpress-mongo";
 import { decryptSecret } from "./Crypto";
 import { env } from "../../env";
@@ -207,3 +207,41 @@ export async function owns3ForUser(userId: ObjectId): Promise<Owns3 | null> {
 }
 
 export const OWNS3_REQUIRED_PERMISSIONS: Owns3Permission[] = ["read", "write", "delete"];
+
+// ---------------------------------------------------------------------------
+// Status shown to the client
+// ---------------------------------------------------------------------------
+
+/** Whether a user can upload files, and with whose storage. Never includes the api key. */
+export function owns3Status(config?: Owns3Config, plan?: string | null) {
+    const defaultAvailable = defaultOwns3() !== null;
+
+    if (!config) return { connected: false as const, default: false, defaultAvailable };
+
+    // Default storage only works while the user is Pro.
+    if (config.isDefault && plan !== "pro") {
+        return { connected: false as const, default: true, defaultAvailable, proRequired: true };
+    }
+
+    return {
+        connected: true as const,
+        default: !!config.isDefault,
+        defaultAvailable,
+        endpoint: config.endpoint,
+        app: config.app,
+        permissions: config.permissions,
+        connectedAt: config.connectedAt
+    };
+}
+
+/** The same flags without the server details, small enough for every `ping`. */
+export function owns3Summary(config?: Owns3Config, plan?: string | null) {
+    const { connected, default: isDefault, defaultAvailable, ...rest } = owns3Status(config, plan);
+
+    return {
+        connected,
+        default: isDefault,
+        defaultAvailable,
+        ...("proRequired" in rest ? { proRequired: true } : {})
+    };
+}

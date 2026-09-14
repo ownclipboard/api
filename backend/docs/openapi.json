@@ -650,15 +650,48 @@
               }
             ]
           },
+          "storage": {
+            "$ref": "#/components/schemas/StorageSummary",
+            "description": "File storage of the account, for deciding whether to offer uploads."
+          },
           "subscription": {
             "$ref": "#/components/schemas/Subscription",
             "description": "Latest active subscription, if any."
           }
         },
         "required": [
-          "user"
+          "user",
+          "storage"
         ],
         "additionalProperties": false
+      },
+      "StorageSummary": {
+        "type": "object",
+        "properties": {
+          "connected": {
+            "type": "boolean",
+            "description": "Whether files can be uploaded right now."
+          },
+          "default": {
+            "type": "boolean",
+            "description": "True when the storage in use is the app's default one, not the user's own server."
+          },
+          "defaultAvailable": {
+            "type": "boolean",
+            "description": "Whether this server offers a default storage at all."
+          },
+          "proRequired": {
+            "type": "boolean",
+            "description": "Set when the user picked the default storage but is no longer Pro. `connected` is false until they renew or connect their own server."
+          }
+        },
+        "required": [
+          "connected",
+          "default",
+          "defaultAvailable"
+        ],
+        "additionalProperties": false,
+        "description": "Short view of the user's file storage. The full view is `GET account/owns3`."
       },
       "LoginBody": {
         "type": "object",
@@ -2153,8 +2186,8 @@
         "tags": [
           "Account"
         ],
-        "summary": "Current user and subscription",
-        "description": "Returns the authenticated user's public profile and their latest active subscription.",
+        "summary": "Current user, storage and subscription",
+        "description": "Returns the authenticated user's public profile, their latest active subscription and a\nshort view of their file storage, so the client can decide whether to offer uploads.\n`storage.connected` is true when files can be uploaded now. `storage.default` says the\napp's own storage is in use, `storage.defaultAvailable` whether it is offered at all,\nand `storage.proRequired` appears when the default storage is picked but the Pro plan\nhas lapsed. The full connection details live at `GET /client/v1/account/owns3`.\n",
         "security": [
           {
             "ocToken": []

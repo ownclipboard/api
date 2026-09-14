@@ -7,31 +7,10 @@ import Owns3, {
     Owns3Error,
     Owns3Me,
     Owns3Permission,
+    owns3Status as toStatus,
     OWNS3_REQUIRED_PERMISSIONS
 } from "../../lib/Owns3";
 import { encryptSecret } from "../../lib/Crypto";
-
-/** Public view of a user's owns3 connection. Never includes the api key. */
-function toStatus(config?: Owns3Config, plan?: string | null) {
-    const defaultAvailable = defaultOwns3() !== null;
-
-    if (!config) return { connected: false as const, default: false, defaultAvailable };
-
-    // Default storage only works while the user is Pro.
-    if (config.isDefault && plan !== "pro") {
-        return { connected: false as const, default: true, defaultAvailable, proRequired: true };
-    }
-
-    return {
-        connected: true as const,
-        default: !!config.isDefault,
-        defaultAvailable,
-        endpoint: config.endpoint,
-        app: config.app,
-        permissions: config.permissions,
-        connectedAt: config.connectedAt
-    };
-}
 
 /** Validate a client against owns3 `/me` and check the required permissions. Returns an error message or the `/me` payload. */
 type Verified = { error: string; status: number } | { me: Owns3Me; permissions: Owns3Permission[] };
