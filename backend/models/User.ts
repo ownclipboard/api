@@ -20,7 +20,8 @@ export interface UserDataType {
     password: string;
     email?: string;
     joinedAt: Date;
-    plan?: "free" | "pro";
+    /** Every account starts on `free`. Accounts created before this default may have none. */
+    plan: "free" | "pro";
 
     /**
      * Login Token
@@ -62,7 +63,8 @@ class User extends BaseModel {
         password: is.String().required(),
         email: is.String().optional(),
         joinedAt: is.Date().required(),
-        plan: is.InArray(["free", "pro"]).optional(),
+        // New accounts are enrolled on the free plan.
+        plan: is.InArray(["free", "pro"], "free").required(),
         loginToken: is.String(() => oc_nanoid(21)).required(),
         owns3: joi
             .object({
