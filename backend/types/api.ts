@@ -218,6 +218,11 @@ export interface Folder {
 export interface CreateFolderBody {
     /** Folder name, must be unique per user. The slug is derived from it. */
     name: string;
+    /**
+     * `encrypted` marks a folder whose clips the client encrypts before sending.
+     * Fixed at creation, it cannot be changed afterwards. Defaults to `public`.
+     */
+    visibility?: "public" | "encrypted";
 }
 
 export interface RenameFolderBody {
@@ -397,6 +402,31 @@ export interface FileUrlResponse {
     url: string;
     method: "GET";
     expiresIn: number;
+}
+
+export interface SetEmailBody {
+    /** Trimmed and lower-cased before saving. Must not belong to another account. */
+    email: string;
+    /** The account password. */
+    password: string;
+}
+
+export interface SetEmailResponse {
+    /** The address as stored. */
+    email: string;
+    message: string;
+}
+
+export interface ChangePasswordBody {
+    currentPassword: string;
+    /** 6 to 500 characters. */
+    newPassword: string;
+}
+
+export interface ChangePasswordResponse {
+    /** New jwt for this device. Replace the stored `oc_token` with it. */
+    token: string;
+    message: string;
 }
 
 // ---------------------------------------------------------------------------

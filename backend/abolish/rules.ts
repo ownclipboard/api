@@ -45,7 +45,14 @@ validate.post("Client/Content@publicPaste", {
 
 // Validate create folder route
 validate.post("Client/Folder@create", (http) => ({
-    name: [isStringRequired, { setAuthId: http.authUserId() }, "!FolderExists"]
+    name: [isStringRequired, { setAuthId: http.authUserId() }, "!FolderExists"],
+    // Visibility can only be chosen here: it is never changeable afterwards.
+    visibility: [
+        "default:public",
+        isStringRequired,
+        { inArray: ["public", "encrypted"] },
+        { $errors: { inArray: "Visibility must be 'public' or 'encrypted'." } }
+    ]
 }));
 
 // Validate setup folder password

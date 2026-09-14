@@ -105,6 +105,8 @@ r.path("/client/v1/", () => {
 
     r.path("account", () => {
         r.post("@setPlan");
+        r.post("@setEmail");
+        r.post("@changePassword");
 
         r.post("subscribe", "Subscription@subscribe");
         r.get("subscription", "Subscription@status");

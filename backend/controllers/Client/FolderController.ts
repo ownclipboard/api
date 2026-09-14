@@ -47,13 +47,20 @@ export = <Controller.Object<{ folder: Folder }>>{
      *   post:
      *     tags: [Folders]
      *     summary: Create folder
+     *     description: |
+     *       Creates a folder. Pass `visibility: encrypted` for a folder whose clips the client
+     *       encrypts before sending. Visibility is fixed at creation and cannot be changed later,
+     *       because existing clips would be marked encrypted without being encrypted.
+     *       An encrypted folder needs a password before it is usable, set with
+     *       `POST /client/v1/folder/{folder}/set-password`. Files cannot be uploaded into an
+     *       encrypted folder, its clips cannot be copied or moved, and devices cannot use it.
      *     security: [{ ocToken: [] }]
      *     requestBody:
      *       required: true
      *       content:
      *         application/json:
      *           schema: { $ref: "#/components/schemas/CreateFolderBody" }
-     *           example: { name: Work }
+     *           example: { name: Secrets, visibility: encrypted }
      *     responses:
      *       200:
      *         description: Created folder.
@@ -108,12 +115,15 @@ export = <Controller.Object<{ folder: Folder }>>{
      */
     async create(http) {
         const userId = http.authUserId();
-        const { name } = http.validatedBody();
+        const { name, visibility } = http.validatedBody<{
+            name: string;
+            visibility: FolderDataType["visibility"];
+        }>();
 
         /**
          * Create folder.
          */
-        const folder = await Folder.create({ userId, name });
+        const folder = await Folder.create({ userId, name, visibility });
 
         /**
          * Return folder.
