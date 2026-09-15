@@ -3,6 +3,7 @@ import { verifyJwt } from "@xpresser/jwt";
 import User from "../models/User";
 import { $ } from "../../xpresser";
 import { ObjectId } from "xpress-mongo";
+import { AuthData } from "../types/models";
 
 /**
  * AuthMiddleware
@@ -12,7 +13,7 @@ export = {
      * Default Middleware Action
      * @param {Xpresser.Http} http
      */
-    async validateToken(http: Http): Promise<any> {
+    async validateToken(http: Http) {
         // Get token from header
         const { oc_token } = http.req.headers;
 
@@ -30,20 +31,31 @@ export = {
             let authId: string | ObjectId = $.base64.decode(data.id);
             authId = User.id(authId); // convert to ObjectId
 
-            if (!(await User.exists({ _id: authId })))
-                return http.status(401).send({
-                    error: "Invalid Auth Account!"
-                });
+            const user = await User.findById(authId);
 
-            // Set auth.userId to state.
-            http.state.set("auth.userId", authId);
+            if (!user)
+                return http.badRequestError("Account Not Found!");
+
+            // compare login token
+            if (user.data.loginToken !== data.loginToken)
+                return http.badRequestError("Session Expired!, Please Login Again!");
+
+
+            http.state.set("authData", <AuthData>{
+                _id: authId,
+                username: user.data.username,
+                publicId: user.data.publicId,
+                plan: user.data.plan
+            });
+
+
             // Add to boot for easy controller access.
             http.addToBoot("authId", authId);
 
             // Continue
             return http.next();
         } catch (e: any) {
-            return http.status(401).json({ error: "Invalid Auth Token!" });
+            return http.badRequestError("Invalid Auth Token!");
         }
     }
 };

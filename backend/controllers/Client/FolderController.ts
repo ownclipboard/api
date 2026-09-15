@@ -2,7 +2,11 @@ import { Controller, Http } from "xpresser/types/http";
 import Folder, { FolderDataType } from "../../models/Folder";
 import bcrypt from "bcryptjs";
 import { nanoid } from "nanoid";
+import slugify from "slugify";
 import Content from "../../models/Content";
+import File from "../../models/File";
+import { owns3ForUser } from "../../lib/Owns3";
+import { destroyFile } from "../../lib/Files";
 
 /**
  * FolderController
@@ -15,10 +19,65 @@ export = <Controller.Object<{ folder: Folder }>>{
     e: (http: Http, error: string) => http.status(401).json({ error }),
 
     middlewares: {
-        Abolish: ["create", "setPassword", "checkPassword"],
+        Abolish: ["create", "rename", "setPassword", "checkPassword"],
         "params.pasteId": "pasteId"
     },
 
+    /**
+     * @openapi
+     * /client/v1/folders:
+     *   get:
+     *     tags: [Folders]
+     *     summary: List folders
+     *     description: All folders of the user with their clip counts.
+     *     security: [{ ocToken: [] }]
+     *     responses:
+     *       200:
+     *         description: Folders.
+     *         content:
+     *           application/json:
+     *             schema:
+     *               type: array
+     *               items: { $ref: "#/components/schemas/Folder" }
+     *       401:
+     *         description: Missing or invalid `oc_token`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *   post:
+     *     tags: [Folders]
+     *     summary: Create folder
+     *     description: |
+     *       Creates a folder. Pass `visibility: encrypted` for a folder whose clips the client
+     *       encrypts before sending. Visibility is fixed at creation and cannot be changed later,
+     *       because existing clips would be marked encrypted without being encrypted.
+     *       An encrypted folder needs a password before it is usable, set with
+     *       `POST /client/v1/folder/{folder}/set-password`. Files cannot be uploaded into an
+     *       encrypted folder, its clips cannot be copied or moved, and devices cannot use it.
+     *     security: [{ ocToken: [] }]
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/CreateFolderBody" }
+     *           example: { name: Secrets, visibility: encrypted }
+     *     responses:
+     *       200:
+     *         description: Created folder.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/Folder" }
+     *       400:
+     *         description: Validation error or a folder with that name already exists.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       401:
+     *         description: Missing or invalid `oc_token`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
     /**
      * Get all folders
      * @param http - Current Http Instance
@@ -33,14 +92,18 @@ export = <Controller.Object<{ folder: Folder }>>{
             .aggregate([
                 { $match: { userId } },
                 {
+                    // Count only this user's clips: folder slugs are not unique across users.
                     $lookup: {
                         from: "contents",
-                        localField: "slug",
-                        foreignField: "folder",
+                        let: { slug: "$slug" },
+                        pipeline: [
+                            { $match: { $expr: { $and: [{ $eq: ["$userId", userId] }, { $eq: ["$folder", "$$slug"] }] } } },
+                            { $count: "n" }
+                        ],
                         as: "contents"
                     }
                 },
-                { $addFields: { contents: { $size: "$contents" } } },
+                { $addFields: { contents: { $ifNull: [{ $arrayElemAt: ["$contents.n", 0] }, 0] } } },
                 { $project: Folder.projectPublicFields() }
             ])
             .toArray();
@@ -52,17 +115,123 @@ export = <Controller.Object<{ folder: Folder }>>{
      */
     async create(http) {
         const userId = http.authUserId();
-        const { name } = http.validatedBody();
+        const { name, visibility } = http.validatedBody<{
+            name: string;
+            visibility: FolderDataType["visibility"];
+        }>();
 
         /**
          * Create folder.
          */
-        const folder = await Folder.create({ userId, name });
+        const folder = await Folder.create({ userId, name, visibility });
 
         /**
          * Return folder.
          */
         return folder.getPublicFields();
+    },
+
+    /**
+     * @openapi
+     * /client/v1/folder/{folder}/set-password:
+     *   post:
+     *     tags: [Folders]
+     *     summary: Set folder password
+     *     description: |
+     *       Stores the password used to encrypt clips in this folder. The client must send the
+     *       MD5 hash of the password, never the plain text. Folders with a password cannot be deleted.
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: folder, required: true, schema: { type: string }, description: Folder slug. }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/FolderPasswordBody" }
+     *           example: { password: 5f4dcc3b5aa765d61d8327deb882cf99 }
+     *     responses:
+     *       200:
+     *         description: Password set.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MessageResponse" }
+     *       400:
+     *         description: Validation error.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Folder not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
+     * @openapi
+     * /client/v1/folder/{folder}/rename:
+     *   post:
+     *     tags: [Folders]
+     *     summary: Rename folder
+     *     description: |
+     *       Renames a folder. The slug is derived from the new name, and every clip and file in
+     *       the folder is moved to the new slug, so the client must use the returned `slug` from
+     *       now on. The default `clipboard` and `encrypted` folders cannot be renamed.
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: folder, required: true, schema: { type: string }, description: Current folder slug. }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/RenameFolderBody" }
+     *           example: { name: Work notes }
+     *     responses:
+     *       200:
+     *         description: The renamed folder.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/Folder" }
+     *       400:
+     *         description: Validation error, protected folder, or a folder with that name already exists.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Folder not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
+     * Rename a folder and move its clips and files to the new slug.
+     */
+    async rename(http, { folder }) {
+        const { name } = http.validatedBody<{ name: string }>();
+        const { userId, slug: oldSlug } = folder.data;
+
+        if (["clipboard", "encrypted"].includes(oldSlug)) {
+            return http.badRequestError(`Folder '${folder.data.name}' is a default folder and cannot be renamed.`);
+        }
+
+        const newSlug = slugify(name, { lower: true, replacement: "-" });
+        if (!/[a-z0-9]/.test(newSlug)) return http.badRequestError("Folder name must contain letters or numbers.");
+
+        if (name === folder.data.name) return { ...folder.getPublicFields(), info: "Folder name unchanged." };
+
+        // Another folder already owns the new slug?
+        const clash = await Folder.exists({ userId, slug: newSlug, _id: { $ne: folder.id() } });
+        if (clash) return http.badRequestError(`Folder with name: '${name}' already exists.`);
+
+        await folder.update({ name, slug: newSlug });
+
+        if (newSlug !== oldSlug) {
+            await Promise.all([
+                Content.native().updateMany({ userId, folder: oldSlug }, { $set: { folder: newSlug } }),
+                File.native().updateMany({ userId, folder: oldSlug }, { $set: { folder: newSlug } })
+            ]);
+        }
+
+        return { ...folder.getPublicFields(), message: "Folder renamed." };
     },
 
     /**
@@ -85,6 +254,37 @@ export = <Controller.Object<{ folder: Folder }>>{
     },
 
     /**
+     * @openapi
+     * /client/v1/folder/{folder}/check-password:
+     *   post:
+     *     tags: [Folders]
+     *     summary: Check folder password
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: folder, required: true, schema: { type: string }, description: Folder slug. }
+     *     requestBody:
+     *       required: true
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/FolderPasswordBody" }
+     *     responses:
+     *       200:
+     *         description: Comparison result.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/CheckFolderPasswordResponse" }
+     *       400:
+     *         description: Validation error or the folder has no password.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Folder not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Check if password is correct.
      * @param http
      * @param folder
@@ -99,6 +299,33 @@ export = <Controller.Object<{ folder: Folder }>>{
         return { match: folder.matchPassword(password) };
     },
 
+    /**
+     * @openapi
+     * /client/v1/folder/{folder}/enable-public-paste:
+     *   post:
+     *     tags: [Folders]
+     *     summary: Enable public paste
+     *     description: Generates a public paste id so anyone can paste into this folder via `/client/v1/clips/paste/{pasteId}`.
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: folder, required: true, schema: { type: string }, description: Folder slug. }
+     *     responses:
+     *       200:
+     *         description: Enabled.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MessageResponse" }
+     *       400:
+     *         description: Already enabled.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Folder not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
     /**
      * Enable public paste.
      * @param http
@@ -119,6 +346,32 @@ export = <Controller.Object<{ folder: Folder }>>{
     },
 
     /**
+     * @openapi
+     * /client/v1/folder/{folder}/disable-public-paste:
+     *   post:
+     *     tags: [Folders]
+     *     summary: Disable public paste
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: folder, required: true, schema: { type: string }, description: Folder slug. }
+     *     responses:
+     *       200:
+     *         description: Disabled.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MessageResponse" }
+     *       400:
+     *         description: Not enabled.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Folder not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Disable public paste.
      * @param http
      * @param folder
@@ -133,6 +386,33 @@ export = <Controller.Object<{ folder: Folder }>>{
     },
 
     /**
+     * @openapi
+     * /client/v1/folder/{folder}:
+     *   delete:
+     *     tags: [Folders]
+     *     summary: Delete folder
+     *     description: Deletes the folder and every clip in it. The default `clipboard` folder and folders with a password cannot be deleted.
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: folder, required: true, schema: { type: string }, description: Folder slug. }
+     *     responses:
+     *       200:
+     *         description: Deleted.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MessageResponse" }
+     *       400:
+     *         description: Folder is protected or is the default folder.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Folder not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
      * Delete a folder.
      */
     async delete(http, { folder }) {
@@ -142,6 +422,22 @@ export = <Controller.Object<{ folder: Folder }>>{
             return http.badRequestError(
                 `Folder ${folder.data.name} cannot be deleted! It is the default folder.`
             );
+        }
+
+        // Files in this folder: delete their objects on owns3 first.
+        const files = File.fromArray(
+            await File.find({ userId: folder.data.userId, folder: folder.data.slug })
+        );
+
+        if (files.length) {
+            const owns3 = await owns3ForUser(folder.data.userId);
+            if (!owns3) {
+                return http.badRequestError(
+                    `Folder has ${files.length} file(s). Connect your owns3 server to delete it.`
+                );
+            }
+
+            for (const file of files) await destroyFile(file, owns3);
         }
 
         await Content.native().deleteMany({
@@ -154,8 +450,29 @@ export = <Controller.Object<{ folder: Folder }>>{
         return { message: "Folder deleted successfully." };
     },
 
+    /**
+     * @openapi
+     * /client/v1/folders/public/{pasteId}:
+     *   get:
+     *     tags: [Public]
+     *     summary: Folder by public paste id
+     *     description: No authentication required. Resolves a public paste id to its folder.
+     *     parameters:
+     *       - { in: path, name: pasteId, required: true, schema: { type: string } }
+     *     responses:
+     *       200:
+     *         description: Folder.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/PublicFolderResponse" }
+     *       400:
+     *         description: Paste folder not found or has expired.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
     async pasteId(http) {
         const folder = http.loadedParam<Folder>("folder");
-        return { folder };
+        return { folder: folder.getPublicFields() };
     }
 };

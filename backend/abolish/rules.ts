@@ -8,27 +8,11 @@ import Content from "../models/Content";
 import RoutesGuard from "@xpresser/abolish/RoutesGuard";
 import { skipIfUndefined } from "abolish/src/helpers";
 import { $joi } from "abolish/others/joi";
-import { isPasswordRequired, isString, isStringRequired, isUsername } from "./reusables";
+import { isString, isStringRequired } from "./reusables";
 
 
 const validate = new RoutesGuard();
 
-// Validate Login Route
-validate.post("Auth@login", {
-    username: [isUsername, "UsernameExists"],
-    password: isPasswordRequired
-});
-
-// Validate Signup Route
-validate.post("Auth@signup", {
-    username: [isUsername, "!UsernameExists"],
-    password: isPasswordRequired
-});
-
-// Validate check username route
-validate.post("Auth@checkUsername", {
-    username: isUsername
-});
 
 // Validate paste route
 validate.post("Client/Content@paste", (http) => ({
@@ -61,10 +45,22 @@ validate.post("Client/Content@publicPaste", {
 
 // Validate create folder route
 validate.post("Client/Folder@create", (http) => ({
-    name: [isStringRequired, { setAuthId: http.authUserId() }, "!FolderExists"]
+    name: [isStringRequired, { setAuthId: http.authUserId() }, "!FolderExists"],
+    // Visibility can only be chosen here: it is never changeable afterwards.
+    visibility: [
+        "default:public",
+        isStringRequired,
+        { inArray: ["public", "encrypted"] },
+        { $errors: { inArray: "Visibility must be 'public' or 'encrypted'." } }
+    ]
 }));
 
 // Validate setup folder password
+// Validate rename folder route (uniqueness is checked in the action, since the folder may keep its slug)
+validate.post("Client/Folder@rename", {
+    name: [isStringRequired, "maxLength:100"]
+});
+
 validate.post("Client/Folder@setPassword", {
     password: [isStringRequired, "md5"]
 });
@@ -75,10 +71,10 @@ validate.post("Client/Folder@checkPassword", {
 });
 
 // Validate update clip route
+// Only title and content can be updated. `encrypted` is intentionally not accepted here.
 validate.post("Client/Content@update", {
     title: skipIfUndefined(isStringRequired),
-    content: skipIfUndefined(isStringRequired),
-    encrypted: "!default|boolean"
+    content: skipIfUndefined(isStringRequired)
 });
 
 // Validate delete clip route
@@ -88,6 +84,51 @@ validate.post("Client/Content@delete", (http) => {
         password: [{ $skip: !clip.data.encrypted }, isStringRequired, "md5"]
     };
 });
+
+// Validate copy/move clips routes
+const transferClipsRules = (http: any) => ({
+    ids: $joi((joi) =>
+        joi.array().required().min(1).max(100).items(joi.string().label("ids.*")).label("ids")
+    ),
+    folder: [isStringRequired, { setAuthId: http.authUserId() }, "FolderExists"]
+});
+
+validate.post("Client/Content@copy", transferClipsRules);
+validate.post("Client/Content@move", transferClipsRules);
+
+// Validate owns3 connect
+validate.post("Client/Owns3@connect", {
+    endpoint: [isStringRequired, "maxLength:500"],
+    apiKey: [isStringRequired, "maxLength:500"]
+});
+
+// Validate file upload slot request
+validate.post("Client/File@upload", (http) => ({
+    name: [isStringRequired, "maxLength:255"],
+    title: skipIfUndefined([isStringRequired, "maxLength:255"]),
+    contentType: skipIfUndefined([isString, "maxLength:255"]),
+    size: skipIfUndefined("number|min:0"),
+    folder: ["default:clipboard", isStringRequired, { setAuthId: http.authUserId() }, "FolderExists"]
+}));
+
+// Validate device routes
+const deviceName = [isStringRequired, "minLength:2|maxLength:50"];
+
+validate.post("Client/Device@create", (http) => ({
+    name: deviceName,
+    folder: [
+        "default:clipboard",
+        isStringRequired,
+        { setAuthId: http.authUserId() },
+        "FolderExists"
+    ]
+}));
+
+validate.post("Client/Device@rename", { name: deviceName });
+
+validate.post("Client/Device@setFolder", (http) => ({
+    folder: [isStringRequired, { setAuthId: http.authUserId() }, "FolderExists"]
+}));
 
 validate.post("Client/Content@find", {
     ids: $joi((joi) => joi.array().required().items(joi.string().label("ids.*")).label("ids"))

@@ -1,21 +1,27 @@
 import { ObjectId } from "xpress-mongo";
 import { $ } from "../xpresser";
+import type { ValidationError } from "abolish/src/types";
+import type { AuthData } from "./types/models";
 
 class RequestEngine extends $.extendedRequestEngine() {
+
+    authData() {
+        return this.state.get<AuthData>("authData")!;
+    }
+
     /**
      * Check if user is logged!
      */
     isLogged() {
-        return !!this.authUserId();
+        return !!this.authData();
     }
 
     /**
      * Get current authenticated userId
      */
     authUserId(): ObjectId {
-        return this.state.get("auth.userId");
+        return this.authData()!._id;
     }
-
     /**
      * Set default pagination queries.
      */
@@ -41,10 +47,21 @@ class RequestEngine extends $.extendedRequestEngine() {
      * @param message
      * @param status
      */
-    error(message: string, status: number = 500) {
+    error(message: string, status: number = 500, data?: Record<string, any>) {
         return this.status(status).json({
-            error: message
+            error: message,
+            ...(data || {})
         });
+    }
+
+    /**
+     * Abolish Error
+     */
+    abolishError(error: ValidationError) {
+        return this.error(error.message, 400, {
+            field: error.key
+        });
+
     }
 }
 

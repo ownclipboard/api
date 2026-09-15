@@ -1,7 +1,8 @@
 import { ParamsMiddleware } from "@xpresser/params-loader";
-import Folder from "../models/Folder";
-import folder, { FolderDataType } from "../models/Folder";
+import Folder, { FolderDataType } from "../models/Folder";
 import Content, { ContentDataType } from "../models/Content";
+import File, { FileDataType } from "../models/File";
+import Device, { DeviceDataType } from "../models/Device";
 
 // Define your params
 export = ParamsMiddleware({
@@ -25,14 +26,30 @@ export = ParamsMiddleware({
 
     clip: {
         addToBoot: true,
-        load: (uuid) => {
-            // Find clip using userId
-            return Content.findOne(<ContentDataType>{ uuid });
+        load: (publicId, http) => {
+            // Find clip by publicId, scoped to the authenticated user.
+            return Content.findOne(<ContentDataType>{ publicId, userId: http.authUserId() });
         },
         notFound: (http, clip) => {
             // If clip is not found then return 404
             return http.error(`Clip with id: '${clip}' not found!`, 404);
         }
+    },
+
+    file: {
+        addToBoot: true,
+        load: (publicId, http) => {
+            return File.findOne(<FileDataType>{ publicId, userId: http.authUserId() });
+        },
+        notFound: (http, file) => http.error(`File with id: '${file}' not found!`, 404)
+    },
+
+    device: {
+        addToBoot: true,
+        load: (publicId, http) => {
+            return Device.findOne(<DeviceDataType>{ publicId, userId: http.authUserId() });
+        },
+        notFound: (http, device) => http.error(`Device with id: '${device}' not found!`, 404)
     },
 
     pasteId: {

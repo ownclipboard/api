@@ -1,9 +1,10 @@
-import { is, ObjectId, RefreshDateOnUpdate, XMongoSchema } from "xpress-mongo";
+import { CreateIndex, is, joi, ObjectId, RefreshDateOnUpdate, XMongoSchema } from "xpress-mongo";
 import { UseCollection } from "@xpresser/xpress-mongo";
-import BaseModel, { IndexUuid } from "./BaseModel";
+import BaseModel from "./BaseModel";
 import bcrypt from "bcryptjs";
 import Folder, { FolderDataType } from "./Folder";
 import { Abolish } from "abolish";
+import { PublicIdSchema } from "./schemas/schemas";
 
 /**
  * Interface for Model's `this.data`. (For Typescript)
@@ -15,17 +16,22 @@ import { Abolish } from "abolish";
  */
 export interface ContentDataType {
     userId: ObjectId;
-    uuid: string;
+    publicId: string;
     title: string;
-    type: "text" | "url" | "html" | "image";
+    type: "text" | "url" | "html" | "file";
     folder: "clipboard" | "encrypted" | string;
     visibility: "public" | "private" | "encrypted";
     publicPaste?: boolean;
+    size: { human: string, bytes: number };
     context: string;
     encrypted: boolean;
     password?: string;
     locked: boolean;
     favorite: boolean;
+    /** Set on file clips: reference to the `files` collection. */
+    fileId?: ObjectId;
+    /** File clips only: the file reference and its extension (name and size live on the clip). */
+    file?: { publicId: string; ext: string };
     updatedAt?: Date;
     createdAt: Date;
 }
@@ -36,12 +42,17 @@ class Content extends BaseModel {
      */
     static schema: XMongoSchema<ContentDataType> = {
         userId: is.ObjectId().required(),
-        uuid: is.Uuid(4).required(),
+        publicId: PublicIdSchema().required(),
         title: is.String(),
         type: is.String("text").required(),
         folder: is.String("clipboard").required(),
         visibility: is.InArray(["public", "private", "encrypted"], "public").required(),
         context: is.String().required(),
+        
+        size: joi.object({
+            human: joi.string().required(),
+            bytes: joi.number().required()
+        }).required(),
 
         password: is.String().undefined(),
         encrypted: is.Boolean().undefined(),
@@ -49,12 +60,20 @@ class Content extends BaseModel {
         favorite: is.Boolean().undefined(),
         publicPaste: is.Boolean().undefined(),
 
+        fileId: is.ObjectId(),
+        file: joi
+            .object({
+                publicId: joi.string().required(),
+                ext: joi.string().allow("").required()
+            })
+            .optional(),
+
         updatedAt: is.Date(),
         createdAt: is.Date().required()
     };
 
     static publicFields = [
-        "uuid",
+        "publicId",
         "title",
         "type",
         "folder",
@@ -62,11 +81,16 @@ class Content extends BaseModel {
         "locked",
         "favorite",
         "updatedAt",
-        "encrypted"
+        "encrypted",
+        "file"
     ];
 
     // SET Type of this.data.
     public data!: ContentDataType;
+
+    isFile() {
+        return !!this.data.fileId;
+    }
 
     folder(options?: any) {
         return Folder.findOne(
@@ -106,15 +130,17 @@ class Content extends BaseModel {
  * .native() will be made available for use.
  */
 UseCollection(Content, "contents");
+CreateIndex(Content, "publicId", true);
+CreateIndex(Content, ["userId", "folder"]);
 
-// Index Uuid
-IndexUuid(Content);
+
+
 
 // Index userId & folder
-Promise.all([
-    Content.native().createIndex({ folder: 1 }),
-    Content.native().createIndex({ userId: 1 })
-]).catch(console.error);
+// Promise.all([
+//     Content.native().createIndex({ folder: 1 }),
+//     Content.native().createIndex({ userId: 1 })
+// ]).catch(console.error);
 
 // Refresh "updatedAt" on update if has changes.
 RefreshDateOnUpdate(Content, "updatedAt", true);

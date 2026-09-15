@@ -1,4 +1,4 @@
-import { LoadEnv } from "@xpresser/env";
+import { Env } from "@xpresser/env";
 
 // Declare envFile path.
 let envFile = __dirname + "/.env";
@@ -8,35 +8,38 @@ if (__filename.includes(".js")) {
     envFile = __dirname + "/../.env";
 }
 
-// Declare type for env
-type env = {
-    NODE_ENV: string;
-    SECRET_KEY: string;
-    APP_PORT: string;
-    APP_DOMAIN: string;
-    APP_PROTOCOL: string;
-    APP_PREVIEW: string;
-    APP_PREVIEW_URL: string;
 
-    DATABASE_SERVER: string;
-    DATABASE_NAME: string;
-    DATABASE_PASSWORD: string;
-};
+const env = Env(envFile, {
+    NODE_ENV: Env.is.enum(["development", "production"], "development"),
+    SECRET_KEY: Env.is.string(),
 
-// Load Env
-const env = LoadEnv<env>(envFile, {
-    castBoolean: true,
-    required: [
-        "NODE_ENV",
-        "SECRET_KEY",
-        "APP_PORT",
-        "APP_DOMAIN",
-        "APP_PROTOCOL",
-        "DATABASE_SERVER",
-        "DATABASE_NAME",
-        "DATABASE_PASSWORD"
-    ]
-});
+    APP_PORT: Env.is.string("3003"),
+    APP_DOMAIN: Env.is.string("localhost"),
+    APP_PROTOCOL: Env.is.string("http"),
+    APP_PREVIEW: Env.is.boolean(false),
+    APP_PREVIEW_URL: Env.optional.string("clip.ngrok.io"),
+
+    DATABASE_SERVER: Env.is.string("mongodb://localhost:27017"),
+    DATABASE_NAME: Env.is.string("ownclipboard"),
+    DATABASE_PASSWORD: Env.optional.string(),
+
+    // NowPayments (https://nowpayments.io)
+    NOW_PAYMENTS_API_KEY: Env.is.string(),
+    // IPN secret from the NowPayments dashboard (Settings > Payments > IPN secret key).
+    // Used to verify the signature of every webhook call.
+    NOW_PAYMENTS_IPN_SECRET: Env.is.string(),
+    // When true, requests go to api-sandbox.nowpayments.io (use a sandbox api key).
+    NOW_PAYMENTS_SANDBOX: Env.is.boolean(false),
+
+    WEBHOOK_URL: Env.is.string("http://localhost:3003"),
+    FRONTEND_URL: Env.is.string("http://localhost:3000"),
+
+    // Default owns3 server (https://github.com/ownclipboard/owns3) offered to users who
+    // do not want to connect their own. Leave empty to disable the option.
+    // The key must carry read, write and delete permissions.
+    OWNS3_DEFAULT_ENDPOINT: Env.optional.string(),
+    OWNS3_DEFAULT_API_KEY: Env.optional.string(),
+})
 
 // Declare isDev
 const isDev = env.NODE_ENV === "development";
