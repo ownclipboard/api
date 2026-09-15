@@ -175,7 +175,7 @@ export interface LoginBody {
 }
 
 export interface LoginResponse {
-    /** JWT to send in the `oc_token` header. */
+    /** JWT to send in the `oc-token` header. */
     token: string;
     plan: "free" | "pro" | null;
 }
@@ -424,7 +424,7 @@ export interface ChangePasswordBody {
 }
 
 export interface ChangePasswordResponse {
-    /** New jwt for this device. Replace the stored `oc_token` with it. */
+    /** New jwt for this device. Replace the stored `oc-token` with it. */
     token: string;
     message: string;
 }

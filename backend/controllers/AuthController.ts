@@ -50,7 +50,7 @@ export = <Controller.Object>{
      *   post:
      *     tags: [Auth]
      *     summary: Login
-     *     description: Returns a JWT. Send it as the `oc_token` header on authenticated requests.
+     *     description: Returns a JWT. Send it as the `oc-token` header on authenticated requests.
      *     requestBody:
      *       required: true
      *       content:
@@ -230,7 +230,7 @@ export = <Controller.Object>{
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
      *       401:
-     *         description: Missing `oc_token`.
+     *         description: Missing `oc-token`.
      *         content:
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }

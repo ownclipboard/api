@@ -14,18 +14,20 @@ export = {
      * @param {Xpresser.Http} http
      */
     async validateToken(http: Http) {
-        // Get token from header
-        const { oc_token } = http.req.headers;
+        // Get token from header.
+        // `oc_token` is the old spelling, still read so clients can catch up.
+        // Nginx drops headers containing underscores, so `oc-token` is the one to use.
+        const token = http.req.headers["oc-token"] || http.req.headers["oc_token"];
 
         // Check if token exists
-        if (!oc_token)
+        if (!token)
             return http.status(401).send({
-                error: "Header: {oc_token} is required for this endpoint!"
+                error: "Header: {oc-token} is required for this endpoint!"
             });
 
         // validate token
         try {
-            const data = verifyJwt(oc_token as string);
+            const data = verifyJwt(token as string);
 
             // Decode authId
             let authId: string | ObjectId = $.base64.decode(data.id);

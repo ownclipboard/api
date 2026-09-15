@@ -40,7 +40,7 @@ export function buildOpenApiSpec(): Record<string, any> {
                 title: "OwnClipboard API",
                 version: "1.0.0",
                 description:
-                    "Client API for OwnClipboard. Authenticated endpoints expect the JWT from `/auth/login` in the `oc_token` header."
+                    "Client API for OwnClipboard. Authenticated endpoints expect the JWT from `/auth/login` in the `oc-token` header."
             },
             servers: [{ url: env.WEBHOOK_URL, description: "This server" }],
             tags: [
@@ -63,8 +63,9 @@ export function buildOpenApiSpec(): Record<string, any> {
                     ocToken: {
                         type: "apiKey",
                         in: "header",
-                        name: "oc_token",
-                        description: "JWT returned by `POST /client/v1/auth/login`."
+                        name: "oc-token",
+                        description:
+                            "JWT returned by `POST /client/v1/auth/login`. The old `oc_token` spelling is still accepted but is dropped by nginx, which strips headers containing underscores."
                     }
                 },
                 schemas: buildSchemas()

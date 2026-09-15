@@ -3,7 +3,7 @@
   "info": {
     "title": "OwnClipboard API",
     "version": "1.0.0",
-    "description": "Client API for OwnClipboard. Authenticated endpoints expect the JWT from `/auth/login` in the `oc_token` header."
+    "description": "Client API for OwnClipboard. Authenticated endpoints expect the JWT from `/auth/login` in the `oc-token` header."
   },
   "servers": [
     {
@@ -54,8 +54,8 @@
       "ocToken": {
         "type": "apiKey",
         "in": "header",
-        "name": "oc_token",
-        "description": "JWT returned by `POST /client/v1/auth/login`."
+        "name": "oc-token",
+        "description": "JWT returned by `POST /client/v1/auth/login`. The old `oc_token` spelling is still accepted but is dropped by nginx, which strips headers containing underscores."
       }
     },
     "schemas": {
@@ -716,7 +716,7 @@
         "properties": {
           "token": {
             "type": "string",
-            "description": "JWT to send in the `oc_token` header."
+            "description": "JWT to send in the `oc-token` header."
           },
           "plan": {
             "type": [
@@ -1457,7 +1457,7 @@
         "properties": {
           "token": {
             "type": "string",
-            "description": "New jwt for this device. Replace the stored `oc_token` with it."
+            "description": "New jwt for this device. Replace the stored `oc-token` with it."
           },
           "message": {
             "type": "string"
@@ -1830,7 +1830,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid `oc_token`.",
+            "description": "Missing or invalid `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -1876,7 +1876,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid `oc_token`.",
+            "description": "Missing or invalid `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2282,7 +2282,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid `oc_token`.",
+            "description": "Missing or invalid `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2300,7 +2300,7 @@
           "Auth"
         ],
         "summary": "Login",
-        "description": "Returns a JWT. Send it as the `oc_token` header on authenticated requests.",
+        "description": "Returns a JWT. Send it as the `oc-token` header on authenticated requests.",
         "requestBody": {
           "required": true,
           "content": {
@@ -2469,7 +2469,7 @@
             }
           },
           "401": {
-            "description": "Missing `oc_token`.",
+            "description": "Missing `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2505,7 +2505,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid `oc_token`.",
+            "description": "Missing or invalid `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2694,7 +2694,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid `oc_token`.",
+            "description": "Missing or invalid `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2752,7 +2752,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid `oc_token`.",
+            "description": "Missing or invalid `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3449,7 +3449,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid `oc_token`.",
+            "description": "Missing or invalid `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -3946,7 +3946,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid `oc_token`.",
+            "description": "Missing or invalid `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4054,7 +4054,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid `oc_token`.",
+            "description": "Missing or invalid `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4119,7 +4119,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid `oc_token`.",
+            "description": "Missing or invalid `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4526,7 +4526,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid `oc_token`.",
+            "description": "Missing or invalid `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4586,7 +4586,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid `oc_token`.",
+            "description": "Missing or invalid `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {
@@ -4604,7 +4604,7 @@
           "Account"
         ],
         "summary": "Change the account password",
-        "description": "Replaces the password. The current one is required. Every other session is ended,\nso a new token is returned for the caller: replace the stored `oc_token` with it,\notherwise the next request fails with a session error.\n",
+        "description": "Replaces the password. The current one is required. Every other session is ended,\nso a new token is returned for the caller: replace the stored `oc-token` with it,\notherwise the next request fails with a session error.\n",
         "security": [
           {
             "ocToken": []
@@ -4646,7 +4646,7 @@
             }
           },
           "401": {
-            "description": "Missing or invalid `oc_token`.",
+            "description": "Missing or invalid `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {

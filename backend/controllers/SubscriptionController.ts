@@ -57,7 +57,7 @@ export = <Controller.Object>{
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
      *       401:
-     *         description: Missing or invalid `oc_token`.
+     *         description: Missing or invalid `oc-token`.
      *         content:
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -153,7 +153,7 @@ export = <Controller.Object>{
      *           application/json:
      *             schema: { $ref: "#/components/schemas/SubscriptionStatusResponse" }
      *       401:
-     *         description: Missing or invalid `oc_token`.
+     *         description: Missing or invalid `oc-token`.
      *         content:
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }

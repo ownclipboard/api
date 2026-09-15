@@ -64,7 +64,7 @@ export = <Controller.Object>{
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
      *       401:
-     *         description: Missing or invalid `oc_token`.
+     *         description: Missing or invalid `oc-token`.
      *         content:
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -133,7 +133,7 @@ export = <Controller.Object>{
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
      *       401:
-     *         description: Missing or invalid `oc_token`.
+     *         description: Missing or invalid `oc-token`.
      *         content:
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -182,7 +182,7 @@ export = <Controller.Object>{
      *     summary: Change the account password
      *     description: |
      *       Replaces the password. The current one is required. Every other session is ended,
-     *       so a new token is returned for the caller: replace the stored `oc_token` with it,
+     *       so a new token is returned for the caller: replace the stored `oc-token` with it,
      *       otherwise the next request fails with a session error.
      *     security: [{ ocToken: [] }]
      *     requestBody:
@@ -203,7 +203,7 @@ export = <Controller.Object>{
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
      *       401:
-     *         description: Missing or invalid `oc_token`.
+     *         description: Missing or invalid `oc-token`.
      *         content:
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }

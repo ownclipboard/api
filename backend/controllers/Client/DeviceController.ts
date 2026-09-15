@@ -37,7 +37,7 @@ export = <Controller.Object<{ authId: ObjectId; device: Device }>>{
      *           application/json:
      *             schema: { $ref: "#/components/schemas/DeviceListResponse" }
      *       401:
-     *         description: Missing or invalid `oc_token`.
+     *         description: Missing or invalid `oc-token`.
      *         content:
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }

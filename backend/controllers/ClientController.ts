@@ -38,7 +38,7 @@ export = <Controller.Object>{
      *           application/json:
      *             schema: { $ref: "#/components/schemas/PingResponse" }
      *       401:
-     *         description: Missing or invalid `oc_token`.
+     *         description: Missing or invalid `oc-token`.
      *         content:
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }

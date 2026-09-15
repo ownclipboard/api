@@ -40,7 +40,7 @@ export = <Controller.Object<{ folder: Folder }>>{
      *               type: array
      *               items: { $ref: "#/components/schemas/Folder" }
      *       401:
-     *         description: Missing or invalid `oc_token`.
+     *         description: Missing or invalid `oc-token`.
      *         content:
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -73,7 +73,7 @@ export = <Controller.Object<{ folder: Folder }>>{
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
      *       401:
-     *         description: Missing or invalid `oc_token`.
+     *         description: Missing or invalid `oc-token`.
      *         content:
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
