@@ -9,7 +9,7 @@
   "private": false,
   "scripts": {
     "start": "npm run build && node build/ownclipboard.js",
-    "build": "npm run docs:build && npx xjs @stack tsc",
+    "build": "npx xjs @stack tsc",
     "ts-dev": "npx ts-node-dev --respawn ownclipboard.ts",
     "ts:dev": "npx tsx watch ownclipboard.ts",
     "js-dev": "npx nodemon build/ownclipboard.js",
