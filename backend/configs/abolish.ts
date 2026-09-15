@@ -18,7 +18,7 @@ export = () => ({
     validationRules: {
         enabled: true,
         // Validation File Path
-        file: "backend://abolish/Rules",
+        file: "backend://abolish/rules",
         // On Validation Error
         onError(http: Http, err: ValidationError) {
             return http.abolishError(err)
