@@ -2,7 +2,7 @@
  * All reusable abolish rules are declared here.
  * Reducing redundancy when declaring rules.
  */
-import { Rule } from "abolish/src/Functions";
+import { Rule } from "abolish/src/functions";
 import { Schema } from "abolish";
 
 export const isString = Rule([
