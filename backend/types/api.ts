@@ -195,7 +195,7 @@ export interface CheckUsernameResponse {
 }
 
 export interface SetPlanBody {
-    /** Choosing `pro` for the first time starts a 7 day trial. */
+    /** Choosing `pro` for the first time starts a one month trial. */
     plan: "free" | "pro";
 }
 

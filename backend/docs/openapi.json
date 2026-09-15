@@ -792,7 +792,7 @@
               "free",
               "pro"
             ],
-            "description": "Choosing `pro` for the first time starts a 7 day trial."
+            "description": "Choosing `pro` for the first time starts a one month trial."
           }
         },
         "required": [
@@ -4485,7 +4485,7 @@
           "Account"
         ],
         "summary": "Set plan",
-        "description": "Sets the user's plan. Choosing `pro` creates a 7 day trial subscription.\nPaid Pro time is bought through `/client/v1/account/subscribe`.\n",
+        "description": "Sets the user's plan. Choosing `pro` creates a one month trial subscription.\nPaid Pro time is bought through `/client/v1/account/subscribe`.\n",
         "security": [
           {
             "ocToken": []

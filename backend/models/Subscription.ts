@@ -64,7 +64,7 @@ export interface SubscriptionDataType {
     // Price in USD
     amount: number;
     status: "pending" | "active" | "cancelled";
-    // Number of months/years (or weeks for trial)
+    // Number of months/years (a trial counts in months too)
     duration: number;
     // When the paid period starts. Set on activation.
     startsAt?: Date;
@@ -147,7 +147,8 @@ class Subscription extends XMongoModel {
 
         switch (type) {
             case "trial":
-                return 7 * duration;
+                // A trial is one month, same as a paid month.
+                return 30 * duration;
             case "monthly":
                 return 30 * duration;
             case "yearly":

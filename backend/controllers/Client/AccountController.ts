@@ -43,7 +43,7 @@ export = <Controller.Object>{
      *     tags: [Account]
      *     summary: Set plan
      *     description: |
-     *       Sets the user's plan. Choosing `pro` creates a 7 day trial subscription.
+     *       Sets the user's plan. Choosing `pro` creates a one month trial subscription.
      *       Paid Pro time is bought through `/client/v1/account/subscribe`.
      *     security: [{ ocToken: [] }]
      *     requestBody:
