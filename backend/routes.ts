@@ -116,12 +116,12 @@ r.path("/client/v1/", () => {
 
 /**
  * Legacy api of the first OwnClipboard platform, kept so old apps keep working.
- * Same paths, same responses, only moved under "/api/legacy".
+ * Same paths and same responses as the old "/api", so an app only changes host.
  * Authenticated with a device api key, never with the jwt.
  */
-r.post("/api/legacy/validate", "LegacyApi@validate");
+r.post("/api/validate", "LegacyApi@validate");
 
-r.path("/api/legacy", () => {
+r.path("/api", () => {
     r.post("@connect");
     r.get("@all");
     r.post("@add");

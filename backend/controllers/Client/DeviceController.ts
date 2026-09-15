@@ -5,7 +5,7 @@ import { deviceLimitFor, resolveDeviceFolder } from "../../lib/Devices";
 
 /**
  * DeviceController
- * Devices are api keys used by external apps through the legacy api at `/api/legacy/*`.
+ * Devices are api keys used by external apps through the legacy api at `/api/*`.
  * The key is shown once, when the device is created or its key is rotated.
  */
 export = <Controller.Object<{ authId: ObjectId; device: Device }>>{

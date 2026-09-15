@@ -23,7 +23,7 @@ import { oc_stringSize } from "../../functions";
  *    so the job can be re-run safely.
  *  - Old emails are kept unless another account already uses them.
  *  - Old timestamps are kept (`joinedAt`, clip `createdAt`/`updatedAt`).
- *  - Devices are imported too, so apps keep working against `/api/legacy/*` with the
+ *  - Devices are imported too, so apps keep working against `/api/*` with the
  *    api keys they already hold. Only the hash of each key is stored.
  *
  *  Run: xjs run import/old-platform /path/to/database.sqlite [dry-run]

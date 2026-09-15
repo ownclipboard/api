@@ -6,11 +6,11 @@ import type User from "../models/User";
 import { htmlEntities, nl2br } from "../functions";
 
 /**
- * Helpers of the legacy api served at `/api/legacy/*`.
+ * Helpers of the legacy api served at `/api/*`.
  *
  * Everything here exists to reproduce the responses of the first OwnClipboard
  * platform byte for byte, so apps written against `yourdomain.com/api/*` keep
- * working when pointed at `/api/legacy/*`. Do not "improve" these shapes.
+ * working when pointed at `/api/*`. Do not "improve" these shapes.
  */
 
 /** Errors of the old api, with the exact type and message strings it used. */

@@ -46,7 +46,7 @@
     },
     {
       "name": "Legacy",
-      "description": "Api of the first OwnClipboard platform, served at `/api/legacy/*` so existing apps keep working. Authenticated with a device api key sent as the `oc-key` header, an `api_key` query param or an `api_key` body field, never with the jwt."
+      "description": "Api of the first OwnClipboard platform, served at `/api/*` so existing apps keep working. Authenticated with a device api key sent as the `oc-key` header, an `api_key` query param or an `api_key` body field, never with the jwt."
     }
   ],
   "components": {
@@ -1944,7 +1944,7 @@
         }
       }
     },
-    "/api/legacy/validate": {
+    "/api/validate": {
       "post": {
         "tags": [
           "Legacy"
@@ -1980,7 +1980,7 @@
         }
       }
     },
-    "/api/legacy/connect": {
+    "/api/connect": {
       "post": {
         "tags": [
           "Legacy"
@@ -2057,7 +2057,7 @@
         }
       }
     },
-    "/api/legacy/all": {
+    "/api/all": {
       "get": {
         "tags": [
           "Legacy"
@@ -2113,7 +2113,7 @@
         }
       }
     },
-    "/api/legacy/add": {
+    "/api/add": {
       "post": {
         "tags": [
           "Legacy"
@@ -2182,7 +2182,7 @@
         }
       }
     },
-    "/api/legacy/delete": {
+    "/api/delete": {
       "delete": {
         "tags": [
           "Legacy"

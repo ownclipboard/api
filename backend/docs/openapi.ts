@@ -55,7 +55,7 @@ export function buildOpenApiSpec(): Record<string, any> {
                 {
                     name: "Legacy",
                     description:
-                        "Api of the first OwnClipboard platform, served at `/api/legacy/*` so existing apps keep working. Authenticated with a device api key sent as the `oc-key` header, an `api_key` query param or an `api_key` body field, never with the jwt."
+                        "Api of the first OwnClipboard platform, served at `/api/*` so existing apps keep working. Authenticated with a device api key sent as the `oc-key` header, an `api_key` query param or an `api_key` body field, never with the jwt."
                 }
             ],
             components: {

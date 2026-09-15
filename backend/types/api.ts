@@ -492,7 +492,7 @@ export interface DeviceResponse {
 }
 
 // ---------------------------------------------------------------------------
-// Legacy api (/api/legacy)
+// Legacy api (/api)
 // ---------------------------------------------------------------------------
 
 /** A clip as the first OwnClipboard platform returned it. */

@@ -7,7 +7,7 @@ import { PublicIdSchema } from "./schemas/schemas";
 
 /**
  * A device is an api key an external app uses to read and write clips
- * through the legacy api at `/api/legacy/*`.
+ * through the legacy api at `/api/*`.
  *
  * The key itself is never stored: only its sha256 hash and the last few
  * characters, so it can be shown once and recognised in a list afterwards.
@@ -27,7 +27,7 @@ export interface DeviceDataType {
     enabled: boolean;
     /** Number of legacy api calls made with this key. */
     hits: number;
-    /** Set the first time the key is used, through the legacy `/api/legacy/connect`. */
+    /** Set the first time the key is used, through the legacy `/api/connect`. */
     connectedAt?: Date;
     /** `device_id` the app sent when it connected. */
     usedBy?: string;

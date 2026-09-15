@@ -7,7 +7,7 @@ import { LegacyApiErrors, legacyApiData, legacyApiError, legacyApiState, legacyC
 /**
  * LegacyApiController
  *
- * The api of the first OwnClipboard platform, served at `/api/legacy/*` so apps
+ * The api of the first OwnClipboard platform, served at `/api/*` so apps
  * built against the old `/api/*` endpoints keep working. Request and response
  * shapes are reproduced exactly, including the `{status, data}` envelope, the
  * `{status, error}` errors and the snake_case clip fields.
@@ -24,7 +24,7 @@ export = <Controller.Object>{
 
     /**
      * @openapi
-     * /api/legacy/validate:
+     * /api/validate:
      *   post:
      *     tags: [Legacy]
      *     summary: Validate that this host is an OwnClipboard server
@@ -51,7 +51,7 @@ export = <Controller.Object>{
 
     /**
      * @openapi
-     * /api/legacy/connect:
+     * /api/connect:
      *   post:
      *     tags: [Legacy]
      *     summary: Connect an api key (one time)
@@ -114,7 +114,7 @@ export = <Controller.Object>{
 
     /**
      * @openapi
-     * /api/legacy/all:
+     * /api/all:
      *   get:
      *     tags: [Legacy]
      *     summary: Get or search clips
@@ -170,7 +170,7 @@ export = <Controller.Object>{
 
     /**
      * @openapi
-     * /api/legacy/add:
+     * /api/add:
      *   post:
      *     tags: [Legacy]
      *     summary: Add a clip
@@ -243,7 +243,7 @@ export = <Controller.Object>{
 
     /**
      * @openapi
-     * /api/legacy/delete:
+     * /api/delete:
      *   delete:
      *     tags: [Legacy]
      *     summary: Delete a clip
@@ -289,7 +289,7 @@ export = <Controller.Object>{
     },
 
     /**
-     * Anything else under /api/legacy.
+     * Anything else under /api.
      */
     notFound(http) {
         return legacyApiError(http, LegacyApiErrors.routeNotFound, 404);
