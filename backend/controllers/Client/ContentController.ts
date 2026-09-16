@@ -10,6 +10,7 @@ import slugify from "slugify";
 import File from "../../models/File";
 import { Owns3Error, owns3ForUser } from "../../lib/Owns3";
 import { destroyFile } from "../../lib/Files";
+import { connectionIdOf, publishToUser, publishToUserId } from "../../lib/Realtime";
 
 type TransferSkipReason = "not_found" | "encrypted" | "same_folder" | "file";
 
@@ -120,6 +121,22 @@ async function transferClips(http: Http, userId: ObjectId, mode: "copy" | "move"
             await clip.save();
             done.push({ id });
         }
+    }
+
+    // One event for the whole batch, however many clips moved.
+    if (done.length || merged.length) {
+        const folders = oc_uniqueStringArray([
+            target.data.slug,
+            ...clips.map((c) => c.data.folder)
+        ]);
+
+        publishToUser(http.authData().publicId, "clips.changed", {
+            folders,
+            created: mode === "copy" ? done.length : 0,
+            updated: mode === "copy" ? merged.length : done.length + merged.length,
+            deleted: mode === "move" ? merged.length : 0,
+            from: connectionIdOf(http.req.headers)
+        });
     }
 
     return {
@@ -261,6 +278,8 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
             ? null
             : await Content.findOne({ userId, context, folder, fileId: { $exists: false } });
 
+        const isNew = !content;
+
         // If content already exists, update updateAt date.
         if (content) {
             content.data.updatedAt = new Date();
@@ -287,6 +306,13 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
 
         // Save content
         await content.save();
+
+        // Tell the user's other devices.
+        publishToUser(http.authData().publicId, isNew ? "clip.new" : "clip.updated", {
+            id: content.data.publicId,
+            folder: content.data.folder,
+            from: connectionIdOf(http.req.headers)
+        });
 
         // Return public fields
         return { clip: content.getPublicFields() };
@@ -357,6 +383,12 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
         content.data.size = oc_stringSize(content.data.context);
 
         await content.save();
+
+        // Tell the folder's owner, who is not the one pasting here.
+        publishToUserId(folder.data.userId, updated ? "clip.updated" : "clip.new", {
+            id: content.data.publicId,
+            folder: content.data.folder
+        });
 
         // Return public fields
         return {
@@ -674,6 +706,12 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
 
         await clip.save();
 
+        publishToUser(http.authData().publicId, "clip.updated", {
+            id: clip.data.publicId,
+            folder: clip.data.folder,
+            from: connectionIdOf(http.req.headers)
+        });
+
         return { message: "Clip updated successfully!" };
     },
 
@@ -710,6 +748,14 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
      */
     async delete(http, { authId, clip }) {
+        // Captured before the clip is gone.
+        const deleted = {
+            id: clip.data.publicId,
+            folder: clip.data.folder,
+            ...(clip.isFile() ? { kind: "file" as const } : {}),
+            from: connectionIdOf(http.req.headers)
+        };
+
         if (clip.data.encrypted) {
             const folder = (await clip.folder())!;
             const { password } = http.validatedBody<{ password: string }>();
@@ -733,11 +779,15 @@ export = <Controller.Object<{ authId: ObjectId; clip: Content }>>{
                     throw e;
                 }
 
+                publishToUser(http.authData().publicId, "clip.deleted", deleted);
+
                 return { message: "Clip deleted successfully!" };
             }
         }
 
         await clip.delete();
+
+        publishToUser(http.authData().publicId, "clip.deleted", deleted);
 
         return { message: "Clip deleted successfully!" };
     }

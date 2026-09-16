@@ -3,6 +3,7 @@ import Content, { ContentDataType } from "../models/Content";
 import { escapeRegexp } from "xpress-mongo/fn/helpers";
 import { oc_stringSize } from "../functions";
 import { LegacyApiErrors, legacyApiData, legacyApiError, legacyApiState, legacyClip } from "../lib/LegacyApi";
+import { publishToUser } from "../lib/Realtime";
 
 /**
  * LegacyApiController
@@ -236,6 +237,12 @@ export = <Controller.Object>{
             clip.data.size = oc_stringSize(context);
 
             await clip.save();
+
+            // A clip from an old app should show up live in the browser too.
+            publishToUser(user.data.publicId, "clip.new", {
+                id: clip.data.publicId,
+                folder
+            });
         }
 
         return legacyApiData(http, { content: legacyClip(clip.data), exists });
@@ -279,11 +286,14 @@ export = <Controller.Object>{
      *             schema: { $ref: "#/components/schemas/LegacyErrorResponse" }
      */
     async delete(http) {
-        const { clip } = legacyApiState(http);
+        const { clip, user } = legacyApiState(http);
 
         // The middleware refuses the request when no clip is given.
         const code = clip!.data.publicId;
+        const folder = clip!.data.folder;
         await clip!.delete();
+
+        publishToUser(user.data.publicId, "clip.deleted", { id: code, folder });
 
         return legacyApiData(http, { deleted: true, code });
     },

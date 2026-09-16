@@ -5,6 +5,7 @@ import Folder, { FolderDataType } from "../../models/Folder";
 import Content, { ContentDataType } from "../../models/Content";
 import { Owns3Error, owns3ForUser, previewKeyFor, previewUrl } from "../../lib/Owns3";
 import { destroyFile, FILE_CLIP_CONTEXT } from "../../lib/Files";
+import { connectionIdOf, publishToUser } from "../../lib/Realtime";
 import { oc_fileSizeToString } from "../../functions";
 import { escapeRegexp } from "xpress-mongo/fn/helpers";
 import { oc_nanoidStripped } from "../../functions/string.fn";
@@ -315,6 +316,14 @@ export = <Controller.Object<{ authId: ObjectId; file: File }>>{
         file.data.clipId = clip.id();
         await file.save();
 
+        // The file is only usable now, so this is where the other devices are told.
+        publishToUser(http.authData().publicId, "clip.new", {
+            id: clip.data.publicId,
+            folder: clip.data.folder,
+            kind: "file",
+            from: connectionIdOf(http.req.headers)
+        });
+
         return { file: file.getPublicFields(), clip: clip.getPublicFields(), message: "File uploaded." };
     },
 
@@ -396,10 +405,25 @@ export = <Controller.Object<{ authId: ObjectId; file: File }>>{
         const owns3 = await owns3ForUser(userId);
         if (!owns3) return http.badRequestError("Connect your owns3 server to delete files.");
 
+        // Captured before the records go: events carry the clip id, as every other clip event does.
+        const folder = file.data.folder;
+        const clip = file.data.clipId
+            ? await Content.findById(file.data.clipId, { projection: { publicId: 1 } })
+            : null;
+
         try {
             await destroyFile(file, owns3);
         } catch (e) {
             return owns3Error(http, e);
+        }
+
+        if (clip) {
+            publishToUser(http.authData().publicId, "clip.deleted", {
+                id: clip.data.publicId,
+                folder,
+                kind: "file",
+                from: connectionIdOf(http.req.headers)
+            });
         }
 
         return { message: "File deleted." };

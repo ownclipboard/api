@@ -2,6 +2,7 @@ import { Controller, Http } from "xpresser/types/http";
 import User from "../models/User";
 import Subscription from "../models/Subscription";
 import { owns3Summary } from "../lib/Owns3";
+import { realtimeEnabled, userChannel } from "../lib/Realtime";
 
 /**
  * ClientController
@@ -25,7 +26,9 @@ export = <Controller.Object>{
      *     summary: Current user, storage and subscription
      *     description: |
      *       Returns the authenticated user's public profile, their latest active subscription and a
-     *       short view of their file storage, so the client can decide whether to offer uploads.
+     *       short view of their file storage, so the client can decide whether to offer uploads,
+     *       plus `realtime`, which says whether live updates are available and names the channel
+     *       to subscribe to after fetching a token from `POST /client/v1/realtime/token`.
      *       `storage.connected` is true when files can be uploaded now. `storage.default` says the
      *       app's own storage is in use, `storage.defaultAvailable` whether it is offered at all,
      *       and `storage.proRequired` appears when the default storage is picked but the Pro plan
@@ -72,7 +75,14 @@ export = <Controller.Object>{
 
         if (user) delete (user.data as any).owns3;
 
+        // Live updates: whether this server has them, and the channel to listen on.
+        const enabled = realtimeEnabled();
+        const realtime = {
+            enabled,
+            channel: enabled && user ? userChannel(user.data.publicId) : null
+        };
+
         // Return only public fields
-        return { user, storage, subscription: sub?.toStat() };
+        return { user, storage, realtime, subscription: sub?.toStat() };
     }
 };

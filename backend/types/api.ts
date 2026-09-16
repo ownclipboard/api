@@ -154,8 +154,60 @@ export interface PingResponse {
     user: AuthUser | null;
     /** File storage of the account, for deciding whether to offer uploads. */
     storage: StorageSummary;
+    /** Live updates: whether this server offers them, and the channel to subscribe to. */
+    realtime: RealtimeSummary;
     /** Latest active subscription, if any. */
     subscription?: Subscription;
+}
+
+/** Live updates over Ably. Absent capability means the client just polls as before. */
+export interface RealtimeSummary {
+    /** False when this server has no Ably key configured. */
+    enabled: boolean;
+    /** Channel to subscribe to, e.g. `user:AbC123`. Null when realtime is off. */
+    channel: string | null;
+}
+
+/**
+ * Signed Ably TokenRequest. Pass it to the Ably SDK unchanged, it is not meant to be read.
+ * The token may only subscribe, and only to the user's own channel.
+ */
+export interface RealtimeTokenResponse {
+    keyName: string;
+    clientId?: string;
+    capability: string;
+    timestamp: number;
+    nonce: string;
+    mac: string;
+    ttl?: number;
+}
+
+/**
+ * Message delivered on a user's realtime channel. The Ably message `name` is the event:
+ * `clip.new`, `clip.updated`, `clip.deleted` or `clips.changed`.
+ *
+ * Payloads carry ids and folder slugs only, never clip content: refetch over the api
+ * when one arrives.
+ */
+export interface RealtimeClipEvent {
+    /** publicId of the clip. */
+    id: string;
+    /** Slug of the folder it lives in. */
+    folder: string;
+    /** Present when the clip is a file clip. */
+    kind?: "file";
+    /** Ably connectionId of the device that caused the change, when it sent one. */
+    from?: string;
+}
+
+/** Payload of `clips.changed`, sent once for a bulk change such as a move or a folder delete. */
+export interface RealtimeClipsChangedEvent {
+    /** Folder slugs whose contents changed. */
+    folders: string[];
+    created?: number;
+    updated?: number;
+    deleted?: number;
+    from?: string;
 }
 
 /** Short view of the user's file storage. The full view is `GET account/owns3`. */

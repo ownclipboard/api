@@ -39,6 +39,10 @@ const env = Env(envFile, {
     // The key must carry read, write and delete permissions.
     OWNS3_DEFAULT_ENDPOINT: Env.optional.string(),
     OWNS3_DEFAULT_API_KEY: Env.optional.string(),
+
+    // Ably (https://ably.com) powers realtime clip notifications.
+    // Leave empty to run without realtime: clients simply poll as before.
+    ABLY_API_KEY: Env.optional.string(),
 })
 
 // Declare isDev

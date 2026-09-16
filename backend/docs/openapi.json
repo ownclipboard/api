@@ -33,6 +33,10 @@
       "description": "Clipboard contents."
     },
     {
+      "name": "Realtime",
+      "description": "Live updates over Ably. Each user has one channel, `user:{publicId}`, carrying `clip.new`, `clip.updated`, `clip.deleted` and `clips.changed` events. Payloads hold ids and folder slugs only, never clip content, so the client refetches when one arrives."
+    },
+    {
       "name": "Devices",
       "description": "Api keys used by external apps through the legacy api."
     },
@@ -660,6 +664,10 @@
             "$ref": "#/components/schemas/StorageSummary",
             "description": "File storage of the account, for deciding whether to offer uploads."
           },
+          "realtime": {
+            "$ref": "#/components/schemas/RealtimeSummary",
+            "description": "Live updates: whether this server offers them, and the channel to subscribe to."
+          },
           "subscription": {
             "$ref": "#/components/schemas/Subscription",
             "description": "Latest active subscription, if any."
@@ -667,7 +675,8 @@
         },
         "required": [
           "user",
-          "storage"
+          "storage",
+          "realtime"
         ],
         "additionalProperties": false
       },
@@ -698,6 +707,120 @@
         ],
         "additionalProperties": false,
         "description": "Short view of the user's file storage. The full view is `GET account/owns3`."
+      },
+      "RealtimeSummary": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "description": "False when this server has no Ably key configured."
+          },
+          "channel": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Channel to subscribe to, e.g. `user:AbC123`. Null when realtime is off."
+          }
+        },
+        "required": [
+          "enabled",
+          "channel"
+        ],
+        "additionalProperties": false,
+        "description": "Live updates over Ably. Absent capability means the client just polls as before."
+      },
+      "RealtimeTokenResponse": {
+        "type": "object",
+        "properties": {
+          "keyName": {
+            "type": "string"
+          },
+          "clientId": {
+            "type": "string"
+          },
+          "capability": {
+            "type": "string"
+          },
+          "timestamp": {
+            "type": "number"
+          },
+          "nonce": {
+            "type": "string"
+          },
+          "mac": {
+            "type": "string"
+          },
+          "ttl": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "keyName",
+          "capability",
+          "timestamp",
+          "nonce",
+          "mac"
+        ],
+        "additionalProperties": false,
+        "description": "Signed Ably TokenRequest. Pass it to the Ably SDK unchanged, it is not meant to be read. The token may only subscribe, and only to the user's own channel."
+      },
+      "RealtimeClipEvent": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "publicId of the clip."
+          },
+          "folder": {
+            "type": "string",
+            "description": "Slug of the folder it lives in."
+          },
+          "kind": {
+            "type": "string",
+            "const": "file",
+            "description": "Present when the clip is a file clip."
+          },
+          "from": {
+            "type": "string",
+            "description": "Ably connectionId of the device that caused the change, when it sent one."
+          }
+        },
+        "required": [
+          "id",
+          "folder"
+        ],
+        "additionalProperties": false,
+        "description": "Message delivered on a user's realtime channel. The Ably message `name` is the event: `clip.new`, `clip.updated`, `clip.deleted` or `clips.changed`.\n\nPayloads carry ids and folder slugs only, never clip content: refetch over the api when one arrives."
+      },
+      "RealtimeClipsChangedEvent": {
+        "type": "object",
+        "properties": {
+          "folders": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Folder slugs whose contents changed."
+          },
+          "created": {
+            "type": "number"
+          },
+          "updated": {
+            "type": "number"
+          },
+          "deleted": {
+            "type": "number"
+          },
+          "from": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "folders"
+        ],
+        "additionalProperties": false,
+        "description": "Payload of `clips.changed`, sent once for a bulk change such as a move or a folder delete."
       },
       "LoginBody": {
         "type": "object",
@@ -2359,7 +2482,7 @@
           "Account"
         ],
         "summary": "Current user, storage and subscription",
-        "description": "Returns the authenticated user's public profile, their latest active subscription and a\nshort view of their file storage, so the client can decide whether to offer uploads.\n`storage.connected` is true when files can be uploaded now. `storage.default` says the\napp's own storage is in use, `storage.defaultAvailable` whether it is offered at all,\nand `storage.proRequired` appears when the default storage is picked but the Pro plan\nhas lapsed. The full connection details live at `GET /client/v1/account/owns3`.\n",
+        "description": "Returns the authenticated user's public profile, their latest active subscription and a\nshort view of their file storage, so the client can decide whether to offer uploads,\nplus `realtime`, which says whether live updates are available and names the channel\nto subscribe to after fetching a token from `POST /client/v1/realtime/token`.\n`storage.connected` is true when files can be uploaded now. `storage.default` says the\napp's own storage is in use, `storage.defaultAvailable` whether it is offered at all,\nand `storage.proRequired` appears when the default storage is picked but the Pro plan\nhas lapsed. The full connection details live at `GET /client/v1/account/owns3`.\n",
         "security": [
           {
             "ocToken": []
@@ -2565,6 +2688,52 @@
           },
           "401": {
             "description": "Missing `oc-token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/realtime/token": {
+      "post": {
+        "tags": [
+          "Realtime"
+        ],
+        "summary": "Token to listen for live updates",
+        "description": "Returns a signed Ably TokenRequest. Point the Ably SDK's `authUrl` at this endpoint\nwith `authMethod: \"POST\"` and the `oc-token` header, and it fetches and renews tokens\non its own. The response body is the TokenRequest itself, as the SDK expects.\n\nThe token may only **subscribe**, and only to the user's own channel,\n`user:{publicId}`, which `GET /client/v1/ping` reports as `realtime.channel`.\nIt can neither publish nor listen to anyone else.\n\nMessages carry ids and folder slugs only, never clip content: on an event the\nclient refetches over this api. Event names are `clip.new`, `clip.updated`,\n`clip.deleted` and `clips.changed`, the last one for bulk changes such as a move\nor a folder being deleted.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Ably TokenRequest, pass it straight to the SDK.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RealtimeTokenResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `oc-token`.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Realtime is not configured on this server.",
             "content": {
               "application/json": {
                 "schema": {

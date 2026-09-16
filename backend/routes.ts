@@ -106,6 +106,13 @@ r.path("/client/v1/", () => {
         }).middlewares(["Auth.validateToken", "params.device"]);
     });
 
+    // Live updates: a token scoped to the user's own channel.
+    r.path("realtime", () => {
+        r.post("@token");
+    })
+        .controller("Client/Realtime")
+        .middlewares(["Auth.validateToken"]);
+
     r.path("account", () => {
         r.post("@setPlan");
         r.post("@setEmail");

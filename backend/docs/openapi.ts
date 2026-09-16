@@ -49,6 +49,11 @@ export function buildOpenApiSpec(): Record<string, any> {
                 { name: "Subscription", description: "Pro plan subscriptions paid through NowPayments." },
                 { name: "Folders", description: "Folders that group clips." },
                 { name: "Clips", description: "Clipboard contents." },
+                {
+                    name: "Realtime",
+                    description:
+                        "Live updates over Ably. Each user has one channel, `user:{publicId}`, carrying `clip.new`, `clip.updated`, `clip.deleted` and `clips.changed` events. Payloads hold ids and folder slugs only, never clip content, so the client refetches when one arrives."
+                },
                 { name: "Devices", description: "Api keys used by external apps through the legacy api." },
                 { name: "Files", description: "Files stored on the user's own owns3 server, represented as file clips." },
                 { name: "Public", description: "Endpoints that need no authentication (public paste)." },

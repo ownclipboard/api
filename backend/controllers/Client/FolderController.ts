@@ -8,6 +8,7 @@ import Content from "../../models/Content";
 import File from "../../models/File";
 import { owns3ForUser } from "../../lib/Owns3";
 import { destroyFile } from "../../lib/Files";
+import { connectionIdOf, publishToUser } from "../../lib/Realtime";
 
 /**
  * FolderController
@@ -226,10 +227,17 @@ export = <Controller.Object<{ folder: Folder }>>{
         await folder.update({ name, slug: newSlug });
 
         if (newSlug !== oldSlug) {
-            await Promise.all([
+            const [clips] = await Promise.all([
                 Content.native().updateMany({ userId, folder: oldSlug }, { $set: { folder: newSlug } }),
                 File.native().updateMany({ userId, folder: oldSlug }, { $set: { folder: newSlug } })
             ]);
+
+            // Clips moved from one slug to another, so both listings are stale.
+            publishToUser(http.authData().publicId, "clips.changed", {
+                folders: [oldSlug, newSlug],
+                updated: clips.modifiedCount,
+                from: connectionIdOf(http.req.headers)
+            });
         }
 
         return { ...folder.getPublicFields(), message: "Folder renamed." };
@@ -503,12 +511,19 @@ export = <Controller.Object<{ folder: Folder }>>{
             for (const file of files) await destroyFile(file, owns3);
         }
 
-        await Content.native().deleteMany({
+        const removed = await Content.native().deleteMany({
             folder: folder.data.slug,
             userId: folder.data.userId
         });
 
         await folder.delete();
+
+        // One event for the whole folder, however many clips it held.
+        publishToUser(http.authData().publicId, "clips.changed", {
+            folders: [folder.data.slug],
+            deleted: removed.deletedCount + files.length,
+            from: connectionIdOf(http.req.headers)
+        });
 
         return { message: "Folder deleted successfully." };
     },
