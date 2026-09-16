@@ -874,6 +874,16 @@
         ],
         "additionalProperties": false
       },
+      "DeleteFolderBody": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string",
+            "description": "MD5 hash of the folder password. Required only when the folder has one."
+          }
+        },
+        "additionalProperties": false
+      },
       "RenameFolderBody": {
         "type": "object",
         "properties": {
@@ -3089,7 +3099,7 @@
           "Folders"
         ],
         "summary": "Delete folder",
-        "description": "Deletes the folder and every clip in it. The default `clipboard` folder and folders with a password cannot be deleted.",
+        "description": "Deletes the folder and every clip in it. Files in the folder are removed from owns3\nfirst, so storage must be connected when the folder holds any.\nA folder that has a password is deleted only when the request carries that password,\nas its MD5 hash, in the body. Folders without one are deleted straight away.\nThe default `clipboard` folder can never be deleted.\n",
         "security": [
           {
             "ocToken": []
@@ -3106,6 +3116,19 @@
             "description": "Folder slug."
           }
         ],
+        "requestBody": {
+          "description": "Required only when the folder has a password.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteFolderBody"
+              },
+              "example": {
+                "password": "5f4dcc3b5aa765d61d8327deb882cf99"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Deleted.",
@@ -3118,7 +3141,7 @@
             }
           },
           "400": {
-            "description": "Folder is protected or is the default folder.",
+            "description": "Missing or wrong folder password, the default folder, or files that cannot be removed.",
             "content": {
               "application/json": {
                 "schema": {

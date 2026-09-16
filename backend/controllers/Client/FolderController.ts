@@ -1,6 +1,7 @@
 import { Controller, Http } from "xpresser/types/http";
 import Folder, { FolderDataType } from "../../models/Folder";
 import bcrypt from "bcryptjs";
+import { Abolish } from "abolish";
 import { nanoid } from "nanoid";
 import slugify from "slugify";
 import Content from "../../models/Content";
@@ -391,10 +392,21 @@ export = <Controller.Object<{ folder: Folder }>>{
      *   delete:
      *     tags: [Folders]
      *     summary: Delete folder
-     *     description: Deletes the folder and every clip in it. The default `clipboard` folder and folders with a password cannot be deleted.
+     *     description: |
+     *       Deletes the folder and every clip in it. Files in the folder are removed from owns3
+     *       first, so storage must be connected when the folder holds any.
+     *       A folder that has a password is deleted only when the request carries that password,
+     *       as its MD5 hash, in the body. Folders without one are deleted straight away.
+     *       The default `clipboard` folder can never be deleted.
      *     security: [{ ocToken: [] }]
      *     parameters:
      *       - { in: path, name: folder, required: true, schema: { type: string }, description: Folder slug. }
+     *     requestBody:
+     *       description: Required only when the folder has a password.
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/DeleteFolderBody" }
+     *           example: { password: 5f4dcc3b5aa765d61d8327deb882cf99 }
      *     responses:
      *       200:
      *         description: Deleted.
@@ -402,7 +414,7 @@ export = <Controller.Object<{ folder: Folder }>>{
      *           application/json:
      *             schema: { $ref: "#/components/schemas/MessageResponse" }
      *       400:
-     *         description: Folder is protected or is the default folder.
+     *         description: Missing or wrong folder password, the default folder, or files that cannot be removed.
      *         content:
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
@@ -416,12 +428,30 @@ export = <Controller.Object<{ folder: Folder }>>{
      * Delete a folder.
      */
     async delete(http, { folder }) {
-        if (folder.has("hasPassword", true)) {
-            return http.badRequestError("Folder has password, cannot delete.");
-        } else if (folder.has("slug", "clipboard")) {
+        if (folder.has("slug", "clipboard")) {
             return http.badRequestError(
                 `Folder ${folder.data.name} cannot be deleted! It is the default folder.`
             );
+        }
+
+        // A folder with a password is only deleted after confirming that password.
+        if (folder.has("hasPassword", true)) {
+            const password = http.body("password", undefined) as unknown;
+
+            if (typeof password !== "string" || !password.length) {
+                return http.error("This folder has a password, send it to delete the folder.", 400, {
+                    field: "password"
+                });
+            }
+
+            // The client sends the md5 of the password, never the password itself.
+            if (!Abolish.test(password, "md5")) {
+                return http.error("Password is not a valid md5 hash.", 400, { field: "password" });
+            }
+
+            if (!folder.matchPassword(password)) {
+                return http.error("Password is incorrect!", 400, { field: "password" });
+            }
         }
 
         // Files in this folder: delete their objects on owns3 first.

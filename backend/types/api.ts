@@ -225,6 +225,11 @@ export interface CreateFolderBody {
     visibility?: "public" | "encrypted";
 }
 
+export interface DeleteFolderBody {
+    /** MD5 hash of the folder password. Required only when the folder has one. */
+    password?: string;
+}
+
 export interface RenameFolderBody {
     /** New folder name, up to 100 characters. The slug is derived from it. */
     name: string;
