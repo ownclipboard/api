@@ -81,6 +81,9 @@ export interface Clip {
     locked?: boolean | null;
     favorite?: boolean | null;
     encrypted?: boolean | null;
+    /** When the clip was created. */
+    createdAt: string;
+    /** When the clip was last changed, absent when it never was. */
     updatedAt?: string;
 }
 

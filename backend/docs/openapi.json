@@ -375,15 +375,21 @@
               "null"
             ]
           },
+          "createdAt": {
+            "type": "string",
+            "description": "When the clip was created."
+          },
           "updatedAt": {
-            "type": "string"
+            "type": "string",
+            "description": "When the clip was last changed, absent when it never was."
           }
         },
         "required": [
           "publicId",
           "type",
           "folder",
-          "context"
+          "context",
+          "createdAt"
         ],
         "additionalProperties": false,
         "description": "Public view of a clip."

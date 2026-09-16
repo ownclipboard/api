@@ -80,6 +80,7 @@ class Content extends BaseModel {
         "context",
         "locked",
         "favorite",
+        "createdAt",
         "updatedAt",
         "encrypted",
         "file"
