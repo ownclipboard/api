@@ -369,6 +369,32 @@ export interface File {
     status: "pending" | "uploaded";
     createdAt: string;
     uploadedAt?: string | null;
+    /**
+     * Public url that needs no authentication, present only when the user's owns3 app
+     * has preview links enabled. Stops working when `FilePreview.expiresAt` passes.
+     */
+    previewUrl?: string;
+}
+
+/** Rotating owns3 preview key, shared by every file in the response. */
+export interface FilePreview {
+    /** Files are readable at `baseUrl` + their path. Each file's ready url is its `previewUrl`. */
+    baseUrl: string;
+    /** When the key rotates. Re-fetch the listing after this. */
+    expiresAt: string;
+    ttlMinutes: number;
+}
+
+export interface FileListResponse {
+    files: {
+        total: number;
+        perPage: number;
+        page: number;
+        lastPage: number;
+        data: File[];
+    };
+    /** Null when preview links are off for the app, or no storage is connected. */
+    preview: FilePreview | null;
 }
 
 export interface FileUploadBody {

@@ -423,9 +423,42 @@ export = <Controller.Object<{ folder: Folder }>>{
      *         content:
      *           application/json:
      *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     * /client/v1/folder/{folder}/delete:
+     *   post:
+     *     tags: [Folders]
+     *     summary: Delete folder (POST alias)
+     *     description: |
+     *       Same as `DELETE /client/v1/folder/{folder}`, for clients or proxies that cannot send
+     *       a body with a DELETE request. Takes the same body and returns the same responses.
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: path, name: folder, required: true, schema: { type: string }, description: Folder slug. }
+     *     requestBody:
+     *       description: Required only when the folder has a password.
+     *       content:
+     *         application/json:
+     *           schema: { $ref: "#/components/schemas/DeleteFolderBody" }
+     *           example: { password: 5f4dcc3b5aa765d61d8327deb882cf99 }
+     *     responses:
+     *       200:
+     *         description: Deleted.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/MessageResponse" }
+     *       400:
+     *         description: Missing or wrong folder password, the default folder, or files that cannot be removed.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     *       404:
+     *         description: Folder not found.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
      */
     /**
      * Delete a folder.
+     * Served as both `DELETE folder/:folder` and `POST folder/:folder/delete`.
      */
     async delete(http, { folder }) {
         if (folder.has("slug", "clipboard")) {

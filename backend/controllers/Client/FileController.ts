@@ -3,9 +3,10 @@ import type { ObjectId } from "xpress-mongo";
 import File, { FileDataType } from "../../models/File";
 import Folder, { FolderDataType } from "../../models/Folder";
 import Content, { ContentDataType } from "../../models/Content";
-import { Owns3Error, owns3ForUser } from "../../lib/Owns3";
+import { Owns3Error, owns3ForUser, previewKeyFor, previewUrl } from "../../lib/Owns3";
 import { destroyFile, FILE_CLIP_CONTEXT } from "../../lib/Files";
 import { oc_fileSizeToString } from "../../functions";
+import { escapeRegexp } from "xpress-mongo/fn/helpers";
 import { oc_nanoidStripped } from "../../functions/string.fn";
 import slugify from "slugify";
 
@@ -31,6 +32,116 @@ export = <Controller.Object<{ authId: ObjectId; file: File }>>{
 
     middlewares: {
         Abolish: ["upload"]
+    },
+
+    /**
+     * @openapi
+     * /client/v1/files:
+     *   get:
+     *     tags: [Files]
+     *     summary: List files
+     *     description: |
+     *       Every uploaded file of the user, newest first. Optional `folder` and `type` filters,
+     *       where `type` matches the start of the content type, so `image` returns every image
+     *       and `image/png` only PNGs.
+     *
+     *       When the user's owns3 app has preview links enabled, the response carries a `preview`
+     *       block with the rotating key's base url and expiry, and every file gets a `previewUrl`
+     *       that needs no authentication and can go straight into an `img` or `video` tag. The key
+     *       rotates, so refresh the listing at `preview.expiresAt`. Files of 99 MB or more are not
+     *       served this way.
+     *
+     *       `preview` is null when preview links are disabled for the app, when the user has no
+     *       storage connected, or when their default storage needs a Pro plan. Fall back to
+     *       `GET /client/v1/file/{file}/url` for a presigned url in that case.
+     *     security: [{ ocToken: [] }]
+     *     parameters:
+     *       - { in: query, name: page, schema: { type: integer, minimum: 1, default: 1 } }
+     *       - { in: query, name: perPage, schema: { type: integer, minimum: 1, maximum: 1000, default: 30 } }
+     *       - { in: query, name: folder, schema: { type: string }, description: Folder slug. }
+     *       - { in: query, name: type, schema: { type: string }, description: "Content type prefix, e.g. `image`." }
+     *     responses:
+     *       200:
+     *         description: A page of files.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/FileListResponse" }
+     *       401:
+     *         description: Missing or invalid `oc-token`.
+     *         content:
+     *           application/json:
+     *             schema: { $ref: "#/components/schemas/ErrorResponse" }
+     */
+    /**
+     * List the user's uploaded files, with preview urls when owns3 offers them.
+     */
+    async all(http, { authId: userId }) {
+        const { page, perPage } = http.paginationQuery();
+        const folder = http.query("folder", undefined) as unknown;
+        const type = http.query("type", undefined) as unknown;
+
+        const query: Record<string, any> = { userId, status: "uploaded" };
+
+        if (typeof folder === "string" && folder.length) {
+            query.folder = slugify(folder, { lower: true, replacement: "-" });
+        }
+
+        // `image` matches image/*, `image/png` only that type.
+        if (typeof type === "string" && type.length) {
+            query.contentType = new RegExp("^" + escapeRegexp(type), "i");
+        }
+
+        const files = await File.paginate<FileDataType>(page, perPage, query, {
+            sort: { uploadedAt: -1, createdAt: -1 }
+        });
+
+        // Public preview urls, when the user's owns3 app has them enabled.
+        let preview: { baseUrl: string; expiresAt: string; ttlMinutes: number } | null = null;
+
+        if (files.data.length) {
+            const owns3 = await owns3ForUser(userId);
+
+            if (owns3) {
+                try {
+                    const key = await previewKeyFor(owns3, `${owns3.endpoint}|${userId}`);
+
+                    if (key) {
+                        preview = {
+                            baseUrl: key.baseUrl,
+                            expiresAt: key.expiresAt,
+                            ttlMinutes: key.ttlMinutes
+                        };
+
+                        for (const file of files.data) {
+                            (file as any).previewUrl = previewUrl(key, file.path);
+                        }
+                    }
+                } catch (e) {
+                    // A preview key is a nice-to-have: never fail the listing over it.
+                    console.error("[files] preview key:", (e as Error).message);
+                }
+            }
+        }
+
+        return {
+            files: {
+                ...files,
+                data: files.data.map((f) => ({
+                    publicId: f.publicId,
+                    name: f.name,
+                    title: f.title,
+                    ext: f.ext,
+                    folder: f.folder,
+                    size: f.size,
+                    contentType: f.contentType,
+                    status: f.status,
+                    createdAt: f.createdAt,
+                    uploadedAt: f.uploadedAt,
+                    previewUrl: (f as any).previewUrl
+                }))
+            },
+            preview
+        };
     },
 
     /**

@@ -58,6 +58,8 @@ r.path("/client/v1/", () => {
 
         r.path("folder/:folder", () => {
             r.delete("=delete");
+            // Alias, for clients that cannot send a body with a DELETE.
+            r.post("@delete");
 
             r.post("@rename");
             r.post("@setPassword");
@@ -76,6 +78,7 @@ r.path("/client/v1/", () => {
 
     r.useController("Client/File", () => {
         r.path("files", () => {
+            r.get("=all");
             r.post("@upload");
         }).middlewares(["Auth.validateToken"]);
 

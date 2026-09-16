@@ -35,6 +35,18 @@ export type Owns3Listing = {
     truncated: boolean;
 };
 
+/**
+ * Rotating key that makes an app's files publicly readable at `{baseUrl}{path}`,
+ * with no api key, so the urls work in `<img>` and `<video>`.
+ * Requires preview links to be enabled for the app in owns3.
+ */
+export type Owns3PreviewKey = {
+    key: string;
+    expiresAt: string;
+    ttlMinutes: number;
+    baseUrl: string;
+};
+
 export type Owns3Presigned = {
     method: "PUT" | "GET";
     url: string;
@@ -151,6 +163,11 @@ class Owns3 {
         return this.request<Owns3Presigned>(() => this.$api.post("/presign/download", { path, expiresIn }));
     }
 
+    /** Current preview key of the app. Throws `forbidden` when preview links are off. */
+    previewKey() {
+        return this.request<Owns3PreviewKey>(() => this.$api.get("/preview-key"));
+    }
+
     /** Delete an object. owns3 succeeds even when the object does not exist. */
     delete(path: string) {
         return this.request<{ ok: boolean; path: string }>(() => this.$api.delete(`/files/${encodePath(path)}`));
@@ -207,6 +224,45 @@ export async function owns3ForUser(userId: ObjectId): Promise<Owns3 | null> {
 }
 
 export const OWNS3_REQUIRED_PERMISSIONS: Owns3Permission[] = ["read", "write", "delete"];
+
+// ---------------------------------------------------------------------------
+// Preview links
+// ---------------------------------------------------------------------------
+
+/** Preview keys live for minutes, so one fetch is reused by every request in that window. */
+const previewKeyCache = new Map<string, { key: Owns3PreviewKey; expiresAt: number }>();
+const PREVIEW_KEY_MARGIN = 30_000;
+
+/**
+ * Preview key for a client, cached until shortly before it expires.
+ * Returns null when the app has preview links disabled (or the key cannot read).
+ */
+export async function previewKeyFor(client: Owns3, cacheKey: string): Promise<Owns3PreviewKey | null> {
+    const cached = previewKeyCache.get(cacheKey);
+    if (cached && cached.expiresAt > Date.now()) return cached.key;
+
+    let key: Owns3PreviewKey;
+    try {
+        key = await client.previewKey();
+    } catch (e) {
+        // 403 means preview links are off for the app: not an error the user can act on here.
+        if (e instanceof Owns3Error && e.status === 403) return null;
+        throw e;
+    }
+
+    const expiresAt = new Date(key.expiresAt).getTime();
+    previewKeyCache.set(cacheKey, {
+        key,
+        expiresAt: (isNaN(expiresAt) ? Date.now() + key.ttlMinutes * 60_000 : expiresAt) - PREVIEW_KEY_MARGIN
+    });
+
+    return key;
+}
+
+/** Public preview url of an object, built from a preview key. */
+export function previewUrl(key: Owns3PreviewKey, path: string) {
+    return key.baseUrl.replace(/\/+$/, "") + "/" + path.split("/").map(encodeURIComponent).join("/");
+}
 
 // ---------------------------------------------------------------------------
 // Status shown to the client

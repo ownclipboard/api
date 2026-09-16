@@ -1274,6 +1274,10 @@
               "string",
               "null"
             ]
+          },
+          "previewUrl": {
+            "type": "string",
+            "description": "Public url that needs no authentication, present only when the user's owns3 app has preview links enabled. Stops working when `FilePreview.expiresAt` passes."
           }
         },
         "required": [
@@ -1289,6 +1293,81 @@
         ],
         "additionalProperties": false,
         "description": "Public view of a file record."
+      },
+      "FilePreview": {
+        "type": "object",
+        "properties": {
+          "baseUrl": {
+            "type": "string",
+            "description": "Files are readable at `baseUrl` + their path. Each file's ready url is its `previewUrl`."
+          },
+          "expiresAt": {
+            "type": "string",
+            "description": "When the key rotates. Re-fetch the listing after this."
+          },
+          "ttlMinutes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "baseUrl",
+          "expiresAt",
+          "ttlMinutes"
+        ],
+        "additionalProperties": false,
+        "description": "Rotating owns3 preview key, shared by every file in the response."
+      },
+      "FileListResponse": {
+        "type": "object",
+        "properties": {
+          "files": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "number"
+              },
+              "perPage": {
+                "type": "number"
+              },
+              "page": {
+                "type": "number"
+              },
+              "lastPage": {
+                "type": "number"
+              },
+              "data": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/File"
+                }
+              }
+            },
+            "required": [
+              "total",
+              "perPage",
+              "page",
+              "lastPage",
+              "data"
+            ],
+            "additionalProperties": false
+          },
+          "preview": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FilePreview"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null when preview links are off for the app, or no storage is connected."
+          }
+        },
+        "required": [
+          "files",
+          "preview"
+        ],
+        "additionalProperties": false
       },
       "FileUploadBody": {
         "type": "object",
@@ -3163,6 +3242,76 @@
         }
       }
     },
+    "/client/v1/folder/{folder}/delete": {
+      "post": {
+        "tags": [
+          "Folders"
+        ],
+        "summary": "Delete folder (POST alias)",
+        "description": "Same as `DELETE /client/v1/folder/{folder}`, for clients or proxies that cannot send\na body with a DELETE request. Takes the same body and returns the same responses.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "folder",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Folder slug."
+          }
+        ],
+        "requestBody": {
+          "description": "Required only when the folder has a password.",
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteFolderBody"
+              },
+              "example": {
+                "password": "5f4dcc3b5aa765d61d8327deb882cf99"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Deleted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MessageResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Missing or wrong folder password, the default folder, or files that cannot be removed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Folder not found.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/client/v1/folders/public/{pasteId}": {
       "get": {
         "tags": [
@@ -3193,6 +3342,79 @@
           },
           "400": {
             "description": "Paste folder not found or has expired.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/client/v1/files": {
+      "get": {
+        "tags": [
+          "Files"
+        ],
+        "summary": "List files",
+        "description": "Every uploaded file of the user, newest first. Optional `folder` and `type` filters,\nwhere `type` matches the start of the content type, so `image` returns every image\nand `image/png` only PNGs.\n\nWhen the user's owns3 app has preview links enabled, the response carries a `preview`\nblock with the rotating key's base url and expiry, and every file gets a `previewUrl`\nthat needs no authentication and can go straight into an `img` or `video` tag. The key\nrotates, so refresh the listing at `preview.expiresAt`. Files of 99 MB or more are not\nserved this way.\n\n`preview` is null when preview links are disabled for the app, when the user has no\nstorage connected, or when their default storage needs a Pro plan. Fall back to\n`GET /client/v1/file/{file}/url` for a presigned url in that case.\n",
+        "security": [
+          {
+            "ocToken": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "page",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1
+            }
+          },
+          {
+            "in": "query",
+            "name": "perPage",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "default": 30
+            }
+          },
+          {
+            "in": "query",
+            "name": "folder",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Folder slug."
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Content type prefix, e.g. `image`."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of files.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid `oc-token`.",
             "content": {
               "application/json": {
                 "schema": {
