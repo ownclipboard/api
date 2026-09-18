@@ -5,14 +5,25 @@ import { pickKeys, XMongoDataType } from "xpress-mongo";
 import { signJwt } from "@xpresser/jwt";
 import { $ } from "../../xpresser";
 import { Abolish, compileSchemaT } from "abolish";
-import { isEmailRequired, isPasswordRequired, isUsername } from "../abolish/reusables";
+import { isEmailRequired, isPasswordRequired, isStringRequired, isUsername } from "../abolish/reusables";
 import { skipIfUndefined } from "abolish/src/helpers";
 
 
-const LoginSchema = compileSchemaT({
-    username: [isUsername, "UsernameExists"],
-    password: isPasswordRequired
-})
+/**
+ * Login only has to match a credential, so it does not enforce the signup policy.
+ * The first platform allowed 4 character passwords at registration, 3 at login, and any
+ * length through change-password, and put no charset rule on usernames. Imported accounts
+ * hold those credentials, and a policy check here would lock them out before the password
+ * is ever compared. Signup stays strict.
+ *
+ * Not compiled: compiled schemas drop `string:trim` before the next validator runs, which
+ * makes a username with a stray space (mobile keyboards, autofill) miss the lookup.
+ */
+const LoginSchema = {
+    username: [isStringRequired, "maxLength:250", "UsernameExists"],
+    // Trimmed like signup does, so both ends agree on what the password is.
+    password: [isStringRequired, "maxLength:500"]
+};
 
 // Not compiled: compiled schemas drop `string:trim` modifiers before the next validator runs,
 // which makes " a@b.com " fail the email check.
