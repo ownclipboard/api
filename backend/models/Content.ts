@@ -3,7 +3,6 @@ import { UseCollection } from "@xpresser/xpress-mongo";
 import BaseModel from "./BaseModel";
 import bcrypt from "bcryptjs";
 import Folder, { FolderDataType } from "./Folder";
-import { Abolish } from "abolish";
 import { PublicIdSchema } from "./schemas/schemas";
 
 /**
@@ -35,6 +34,16 @@ export interface ContentDataType {
     updatedAt?: Date;
     createdAt: Date;
 }
+
+/** An explicit http(s) link: the scheme says what it is, whatever the host. */
+const SCHEMED_URL = /^https?:\/\/\S+$/i;
+
+/**
+ * A link without a scheme: a host with a real tld or an ipv4 address,
+ * an optional port and an optional path.
+ */
+const URL_PATTERN =
+    /^(?:https?:\/\/)?(?:(?:[a-z0-9](?:[a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}|\d{1,3}(?:\.\d{1,3}){3})(?::\d{2,5})?(?:[/?#]\S*)?$/i;
 
 class Content extends BaseModel {
     /**
@@ -113,14 +122,25 @@ class Content extends BaseModel {
         return bcrypt.compareSync(password, this.data.password);
     }
 
+    /**
+     * Is this clip a link?
+     *
+     * Only when the whole content is one token that looks like a url. This used to ask
+     * abolish's `url` validator, which is `new URL()` in a try/catch: that accepts any
+     * `word:` prefix as a scheme and strips newlines, so notes like "Name: John" and
+     * "TODO: buy milk" were stored as links while a bare "example.com" was not.
+     */
+    static isUrl(context: string): boolean {
+        const text = (context || "").trim();
+
+        // A link has no spaces in it, and is never a wall of text.
+        if (!text || text.length > 2048 || /\s/.test(text)) return false;
+
+        return SCHEMED_URL.test(text) || URL_PATTERN.test(text);
+    }
+
     setContextType() {
-        let type: ContentDataType["type"] = "text";
-
-        // Check if it is an url
-        if (Abolish.test(this.data.context, "url")) type = "url";
-
-        // Set content type
-        this.data.type = type;
+        this.data.type = Content.isUrl(this.data.context) ? "url" : "text";
 
         return this;
     }
